@@ -6,6 +6,11 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword"; 
 import Programs from "./pages/Programs";
 import ProgramDetails from "./pages/ProgramDetails";
+import AIDashboard from "./components/HomeAIChat";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import ReportComplaint from "./pages/ReportComplaint";
+import MyContributions from "./pages/MyContributions";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
   return (
@@ -17,6 +22,12 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Forgot Password route */}
          <Route path="/programs" element={<Programs />} /> {/* Programs route */}
          <Route path="/programs/:id" element={<ProgramDetails />} />
+         <Route path="/ai-chat" element={<AIDashboard />} />
+         <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
+         <Route path="/report-complaint" element={<ReportComplaint />} />
+         <Route path="/my-contributions" element={<MyContributions />} />
+         <Route path="/profile" element={<ProfilePage />} />
+
 
       </Routes>
     </Router>

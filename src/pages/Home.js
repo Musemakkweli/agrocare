@@ -188,7 +188,14 @@ export default function Home() {
       <footer className="bg-green-700 dark:bg-green-900 py-6 text-center text-white font-semibold">
         &copy; {new Date().getFullYear()} AgroCare. All rights reserved.
       </footer>
-
+       {/* =================== AI CHAT FLOATING BUTTON =================== */}
+<div
+  onClick={() => navigate("/ai-chat")}
+  className="fixed bottom-6 right-6 z-50 bg-green-600 hover:bg-green-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl cursor-pointer transition transform hover:scale-110"
+  title="Ask AgroCare AI"
+>
+  <FontAwesomeIcon icon={faRobot} className="text-2xl" />
+</div>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeaf, faHome } from "@fortawesome/free-solid-svg-icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [formData, setFormData] = useState({
     identifier: "", // email or phone
@@ -23,7 +24,12 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Here you can do actual authentication logic
     console.log("Login submitted:", formData);
+
+    // Redirect to Farmer Dashboard
+    navigate("/farmer/dashboard");
   };
 
   return (
@@ -60,16 +66,15 @@ export default function Login() {
           className="
             bg-white dark:bg-slate-800 
             rounded-xl shadow-md 
-            px-6 py-8                 /* more vertical padding */
-            max-w-sm w-full          /* narrower width */
-            space-y-5                /* more vertical spacing */
+            px-6 py-8
+            max-w-sm w-full
+            space-y-5
           "
         >
           <h2 className="text-xl font-bold text-green-800 dark:text-green-400 text-center mb-4">
             Login to Your Account
           </h2>
 
-          {/* Email or Phone */}
           <div className="flex flex-col">
             <label className="mb-1 text-green-700 dark:text-green-300 font-medium text-sm">
               Email or Phone
@@ -91,7 +96,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Password */}
           <div className="flex flex-col">
             <label className="mb-1 text-green-700 dark:text-green-300 font-medium text-sm">
               Password
@@ -113,14 +117,13 @@ export default function Login() {
             />
           </div>
 
-          {/* Forgot Password */}
           <div className="text-right text-xs">
             <Link to="/forgot-password" className="text-green-600 dark:text-green-400 hover:underline">
               Forgot password?
             </Link>
           </div>
 
-          {/* Submit */}
+          {/* Login Button */}
           <button 
             type="submit"
             className="
@@ -135,7 +138,6 @@ export default function Login() {
             Login
           </button>
 
-          {/* Register Link */}
           <p className="text-center text-xs text-gray-700 dark:text-gray-300">
             Don’t have an account?{" "}
             <Link to="/register" className="text-green-600 dark:text-green-400 font-medium hover:underline">
