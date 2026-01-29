@@ -5,7 +5,7 @@ export default function ProgramDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Temporary sample data (later from backend)
+  // Temporary sample data (later fetch from backend)
   const programs = [
     {
       id: "1",
@@ -36,13 +36,13 @@ export default function ProgramDetails() {
     }
   ];
 
-  const program = programs.find((p) => p.id === id);
+  // Ensure we compare as strings
+  const program = programs.find((p) => String(p.id) === String(id));
 
-  // Function to handle support/donate click
- const handleSupportFromHome = () => {
-  navigate("/login"); // Always redirect to login
-};
-
+  const handleSupport = () => {
+    // Navigate to donate page for this program
+    navigate(`/donate/${id}`);
+  };
 
   if (!program) {
     return (
@@ -55,7 +55,6 @@ export default function ProgramDetails() {
   return (
     <div className="min-h-screen bg-gray-200 dark:bg-slate-900 py-12 px-6">
       <div className="max-w-3xl mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-md p-8 space-y-6">
-
         <h1 className="text-3xl font-bold text-green-700 dark:text-green-400">
           {program.title}
         </h1>
@@ -72,7 +71,7 @@ export default function ProgramDetails() {
 
         <div className="flex space-x-4 pt-4">
           <button
-            onClick={handleSupportFromHome}
+            onClick={handleSupport}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           >
             Support / Donate
@@ -85,7 +84,6 @@ export default function ProgramDetails() {
             Back
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ export default function Login() {
     console.log("Login submitted:", formData);
 
     // Redirect to Farmer Dashboard
-    navigate("/farmer/dashboard");
+    navigate("/admin/dashboard");
   };
 
   return (

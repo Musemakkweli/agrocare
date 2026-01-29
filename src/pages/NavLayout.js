@@ -14,13 +14,14 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 
-export default function NavLayout({ children }) {
+export default function NavLayout({ children, user }) {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("theme") || "light"
   );
   const [showPrograms, setShowPrograms] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false); // ✅ new state for collapsing sidebar
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false); // ✅ restored
 
   const notifications = [
     "⚠️ Possible pest outbreak nearby",
@@ -41,19 +42,50 @@ export default function NavLayout({ children }) {
   const sidebarSub =
     "w-full flex items-center gap-2 px-6 py-2 text-sm rounded-lg transition hover:bg-green-400 dark:hover:bg-green-600";
 
+  const handleLogout = () => setShowLogoutModal(true);
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    navigate("/login");
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "F";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-200 dark:bg-slate-900">
 
       {/* SIDEBAR */}
       <aside className={`${isCollapsed ? "w-20" : "w-64"} bg-green-600 dark:bg-green-800 text-white flex flex-col transition-all duration-300`}>
-        <div className="p-6 flex items-center justify-between gap-2 text-xl font-bold">
-          {!isCollapsed && <span>Farmer</span>}
-          {/* ✅ Hamburger button */}
-          <button onClick={() => setIsCollapsed(c => !c)} className="p-2 rounded hover:bg-green-500 dark:hover:bg-green-700">
+        
+        {/* USER INFO */}
+        <div className="flex items-center gap-3 p-6">
+          <div className="w-12 h-12 rounded-full bg-green-200 dark:bg-green-700 flex items-center justify-center text-green-800 dark:text-white font-bold text-lg">
+            {getInitials(user?.name)}
+          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="font-semibold">{user?.name || "Farmer"}</span>
+              <span className="text-xs">{user?.role || "Farmer"}</span>
+            </div>
+          )}
+
+          {/* Hamburger for collapse */}
+          <button
+            onClick={() => setIsCollapsed(c => !c)}
+            className="ml-auto p-2 rounded hover:bg-green-500 dark:hover:bg-green-700"
+          >
             <FontAwesomeIcon icon={faBars} />
           </button>
         </div>
 
+        {/* NAVIGATION */}
         <nav className="flex-1 px-3 space-y-1">
           <button onClick={() => navigate("/farmer/dashboard")} className={sidebarBtn}>
             <FontAwesomeIcon icon={faHome} /> {!isCollapsed && "Dashboard"}
@@ -92,9 +124,10 @@ export default function NavLayout({ children }) {
           </button>
         </nav>
 
+        {/* LOGOUT */}
         <button
-          onClick={() => navigate("/logout")}
-          className="flex items-center gap-2 px-4 py-3 hover:bg-green-500 transition"
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-3 hover:bg-green-500 transition mt-auto"
         >
           <FontAwesomeIcon icon={faSignOutAlt} /> {!isCollapsed && "Logout"}
         </button>
@@ -105,7 +138,7 @@ export default function NavLayout({ children }) {
         {/* HEADER */}
         <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-slate-900 shadow mb-6">
           <h1 className="text-2xl font-bold text-green-800 dark:text-green-400">
-            Welcome, Farmer John 👋
+            Dashboard
           </h1>
           <div className="flex items-center gap-4">
             <div className="relative cursor-pointer">
@@ -118,9 +151,7 @@ export default function NavLayout({ children }) {
               </span>
             </div>
             <button
-              onClick={() =>
-                setDarkMode(d => (d === "dark" ? "light" : "dark"))
-              }
+              onClick={() => setDarkMode(d => (d === "dark" ? "light" : "dark"))}
               className="px-3 py-1 rounded bg-gray-300 dark:bg-slate-700 dark:text-white"
             >
               {darkMode === "dark" ? "☀ Light" : "🌙 Dark"}
@@ -133,6 +164,33 @@ export default function NavLayout({ children }) {
           {children}
         </div>
       </main>
+
+      {/* LOGOUT MODAL */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl w-full max-w-sm shadow-lg space-y-4">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">Confirm Logout</h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Are you sure you want to logout?
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-slate-600 dark:text-white hover:bg-gray-400 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
