@@ -12,7 +12,7 @@ import DonatePage from "./pages/DonatePage";
 import AIDashboard from "./components/HomeAIChat";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import ReportComplaint from "./pages/ReportComplaint";
-import MyContributions from "./pages/MyContributions";
+import MyFunds from "./pages/MyFunds";
 import ProfilePage from "./pages/ProfilePage";
 
 // Admin pages
@@ -37,7 +37,7 @@ function App() {
         <Route path="/ai-chat" element={<AIDashboard />} />
         <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
         <Route path="/report-complaint" element={<ReportComplaint />} />
-        <Route path="/my-contributions" element={<MyContributions />} />
+        <Route path="/my-funds" element={<MyFunds />} />
         <Route path="/profile" element={<ProfilePage />} />
 
         {/* Admin routes */}

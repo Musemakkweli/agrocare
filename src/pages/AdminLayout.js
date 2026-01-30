@@ -48,10 +48,14 @@ export default function AdminLayout({ children, user }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-200 dark:bg-slate-900">
-      {/* SIDEBAR */}
-      <aside className={`${isCollapsed ? "w-20" : "w-64"} bg-green-700 dark:bg-green-900 text-white flex flex-col transition-all duration-300`}>
-        
+    <div className="flex h-screen bg-gray-200 dark:bg-slate-900 overflow-hidden">
+
+      {/* ================= SIDEBAR ================= */}
+      <aside
+        className={`fixed top-0 left-0 h-full z-50 ${
+          isCollapsed ? "w-20" : "w-64"
+        } bg-green-700 dark:bg-green-900 text-white flex flex-col transition-all duration-300`}
+      >
         {/* LOGO + COLLAPSE BUTTON */}
         <div className="flex items-center justify-between p-4 border-b border-green-600">
           <div className="flex items-center gap-2">
@@ -77,7 +81,7 @@ export default function AdminLayout({ children, user }) {
         </div>
 
         {/* SIDEBAR LINKS */}
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           <button onClick={() => navigate("/admin/dashboard")} className={sidebarBtn}>
             <FontAwesomeIcon icon={faHome} /> {!isCollapsed && "Dashboard"}
           </button>
@@ -125,10 +129,10 @@ export default function AdminLayout({ children, user }) {
         </button>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col">
+      {/* ================= MAIN CONTENT ================= */}
+      <main className={`flex-1 flex flex-col ml-20 sm:ml-64 overflow-hidden`}>
         {/* HEADER */}
-        <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-slate-900 shadow mb-6">
+        <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-slate-900 shadow flex-shrink-0 sticky top-0 z-40">
           <h1 className="text-2xl font-bold text-green-800 dark:text-green-400">Admin Dashboard</h1>
           <div className="flex items-center gap-4">
             <div className="relative cursor-pointer">
@@ -143,8 +147,8 @@ export default function AdminLayout({ children, user }) {
           </div>
         </div>
 
-        {/* CHILDREN */}
-        <div className="flex-1 p-6">
+        {/* SCROLLABLE CHILDREN */}
+        <div className="flex-1 p-6 overflow-y-auto">
           {children}
         </div>
       </main>
@@ -162,7 +166,6 @@ export default function AdminLayout({ children, user }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }

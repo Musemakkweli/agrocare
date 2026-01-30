@@ -21,7 +21,7 @@ export default function NavLayout({ children, user }) {
   );
   const [showPrograms, setShowPrograms] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false); // ✅ restored
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const notifications = [
     "⚠️ Possible pest outbreak nearby",
@@ -59,34 +59,40 @@ export default function NavLayout({ children, user }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-200 dark:bg-slate-900">
+    <div className="flex h-screen bg-gray-200 dark:bg-slate-900 overflow-hidden">
 
-      {/* SIDEBAR */}
-      <aside className={`${isCollapsed ? "w-20" : "w-64"} bg-green-600 dark:bg-green-800 text-white flex flex-col transition-all duration-300`}>
-        
+      {/* ================= SIDEBAR ================= */}
+      <aside
+        className={`fixed top-0 left-0 h-full z-50 ${
+          isCollapsed ? "w-20" : "w-64"
+        } bg-green-700 dark:bg-green-900 text-white flex flex-col transition-all duration-300`}
+      >
+        {/* LOGO + COLLAPSE BUTTON */}
+        <div className="flex items-center justify-between p-4 border-b border-green-600">
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faSeedling} className="text-2xl text-green-300" />
+            {!isCollapsed && <span className="font-bold text-lg">AgroCare</span>}
+          </div>
+          <button onClick={() => setIsCollapsed(!isCollapsed)}>
+            <FontAwesomeIcon icon={faBars} className="text-white" />
+          </button>
+        </div>
+
         {/* USER INFO */}
         <div className="flex items-center gap-3 p-6">
-          <div className="w-12 h-12 rounded-full bg-green-200 dark:bg-green-700 flex items-center justify-center text-green-800 dark:text-white font-bold text-lg">
+          <div className="w-12 h-12 rounded-full bg-green-300 dark:bg-green-800 flex items-center justify-center text-green-900 dark:text-white font-bold text-lg">
             {getInitials(user?.name)}
           </div>
           {!isCollapsed && (
             <div className="flex flex-col">
               <span className="font-semibold">{user?.name || "Farmer"}</span>
-              <span className="text-xs">{user?.role || "Farmer"}</span>
+              <span className="text-xs">{user?.role || "Agricultural User"}</span>
             </div>
           )}
-
-          {/* Hamburger for collapse */}
-          <button
-            onClick={() => setIsCollapsed(c => !c)}
-            className="ml-auto p-2 rounded hover:bg-green-500 dark:hover:bg-green-700"
-          >
-            <FontAwesomeIcon icon={faBars} />
-          </button>
         </div>
 
         {/* NAVIGATION */}
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
           <button onClick={() => navigate("/farmer/dashboard")} className={sidebarBtn}>
             <FontAwesomeIcon icon={faHome} /> {!isCollapsed && "Dashboard"}
           </button>
@@ -113,8 +119,8 @@ export default function NavLayout({ children, user }) {
               <button onClick={() => navigate("/programs")} className={sidebarSub}>
                 <FontAwesomeIcon icon={faGlobe} /> All Programs
               </button>
-              <button onClick={() => navigate("/my-contributions")} className={sidebarSub}>
-                <FontAwesomeIcon icon={faSeedling} /> My Contributions
+              <button onClick={() => navigate("/my-funds")} className={sidebarSub}>
+                <FontAwesomeIcon icon={faSeedling} /> My Funds
               </button>
             </div>
           )}
@@ -133,10 +139,12 @@ export default function NavLayout({ children, user }) {
         </button>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col">
+      {/* ================= MAIN CONTENT ================= */}
+      <main
+        className={`flex-1 flex flex-col ml-20 sm:ml-64 overflow-hidden`}
+      >
         {/* HEADER */}
-        <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-slate-900 shadow mb-6">
+        <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-slate-900 shadow flex-shrink-0 sticky top-0 z-40">
           <h1 className="text-2xl font-bold text-green-800 dark:text-green-400">
             Dashboard
           </h1>
@@ -159,8 +167,8 @@ export default function NavLayout({ children, user }) {
           </div>
         </div>
 
-        {/* CHILDREN */}
-        <div className="flex-1 p-6">
+        {/* SCROLLABLE CHILDREN */}
+        <div className="flex-1 p-6 overflow-y-auto">
           {children}
         </div>
       </main>
@@ -190,7 +198,6 @@ export default function NavLayout({ children, user }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }

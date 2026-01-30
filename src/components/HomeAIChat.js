@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import NavLayout from "../pages/NavLayout"; // ✅ correct relative path
 
-export default function HomeAIChat() {
+
+export default function HomeAIChat({ user }) {
   const navigate = useNavigate();
   const MAX_FREE_QUESTIONS = 3;
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [questionCount, setQuestionCount] = useState(0);
-  const [darkMode, setDarkMode] = useState(false);
-
   const [imagePreview, setImagePreview] = useState(null);
 
   /* ---------------- SEND MESSAGE ---------------- */
@@ -44,10 +44,9 @@ export default function HomeAIChat() {
   };
 
   return (
-    <div className={darkMode ? "dark" : ""}>
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900 transition-colors p-4">
-
-        {/* CARD */}
+    <NavLayout user={user}>
+      <div className="flex justify-center items-start p-4">
+        {/* AI CHAT CARD */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-5 w-full max-w-xl">
 
           {/* HEADER */}
@@ -55,17 +54,10 @@ export default function HomeAIChat() {
             <h3 className="text-lg font-bold text-green-700 dark:text-green-400">
               Ask AgroCare AI 🌾
             </h3>
-
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="px-3 py-1 rounded-lg bg-gray-200 dark:bg-slate-700 dark:text-white"
-            >
-              {darkMode ? "☀ Light" : "🌙 Dark"}
-            </button>
           </div>
 
           {/* CHAT */}
-          <div className="h-56 overflow-y-auto border rounded-lg p-3 mb-3 bg-gray-50 dark:bg-slate-700">
+          <div className="h-72 overflow-y-auto border rounded-lg p-3 mb-3 bg-gray-50 dark:bg-slate-700">
             {messages.length === 0 && (
               <p className="text-sm text-gray-500 dark:text-gray-300">
                 Ask about crop diseases, pests, or farming tips…
@@ -154,6 +146,6 @@ export default function HomeAIChat() {
           </p>
         </div>
       </div>
-    </div>
+    </NavLayout>
   );
 }
