@@ -21,6 +21,15 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminPrograms from "./pages/AdminPrograms";
 import AdminContributions from "./pages/AdminContributions";
 import AdminComplaints from "./pages/AdminComplaints";
+import AdminReports from "./pages/AdminReports";
+
+// Leader pages
+import LeaderNavLayout from "./pages/LeaderNavLayout";
+import LeaderDashboard from "./pages/LeaderDashboard";
+import LeaderComplaints from "./pages/LeaderComplaints";
+import LeaderFarmers from "./pages/LeaderFarmers";
+import LeaderPrograms from "./pages/LeaderPrograms";
+import LeaderAgronomists from "./pages/LeaderAgronomist";
 
 function App() {
   return (
@@ -41,24 +50,27 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
 
         {/* Admin routes */}
-        <Route path="/admin" element={<AdminDashboard />} /> {/* /admin */}
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-
-        {/* User management by role */}
+        <Route path="/admin/programs/reports" element={<AdminReports />} />
         <Route path="/admin/users/farmers" element={<AdminUsers role="farmer" />} />
         <Route path="/admin/users/leaders" element={<AdminUsers role="leader" />} />
         <Route path="/admin/users/agronomists" element={<AdminUsers role="agronomist" />} />
         <Route path="/admin/users/donors" element={<AdminUsers role="donor" />} />
-
-        {/* Programs & contributions */}
         <Route path="/admin/programs" element={<AdminPrograms />} />
         <Route path="/admin/programs/contributions" element={<AdminContributions />} />
-
-        {/* Complaints */}
         <Route path="/admin/complaints" element={<AdminComplaints />} />
-
-        {/* Profile */}
         <Route path="/admin/profile" element={<ProfilePage />} />
+
+        {/* Leader routes */}
+        <Route element={<LeaderNavLayout user={{ name: "Leader User", role: "Leader" }} />}>
+          <Route path="/leader" element={<LeaderDashboard />} />
+          <Route path="/leader/profile" element={<ProfilePage currentUser={{ name: "Leader User", role: "Leader" }} />} />
+          <Route path="/leader/programs" element={<LeaderPrograms />} />
+          <Route path="/leader/complaints" element={<LeaderComplaints />} />
+          <Route path="/leader/farmers" element={<LeaderFarmers />} />
+          <Route path="/leader/agronomist" element={<LeaderAgronomists />} />
+        </Route>
       </Routes>
     </Router>
   );
