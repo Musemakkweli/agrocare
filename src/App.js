@@ -1,7 +1,8 @@
+// App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// Public pages
+/* ================= PUBLIC PAGES ================= */
 import Home from "./pages/Home";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -15,7 +16,7 @@ import ReportComplaint from "./pages/ReportComplaint";
 import MyFunds from "./pages/MyFunds";
 import ProfilePage from "./pages/ProfilePage";
 
-// Admin pages
+/* ================= ADMIN PAGES ================= */
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminPrograms from "./pages/AdminPrograms";
@@ -23,7 +24,7 @@ import AdminContributions from "./pages/AdminContributions";
 import AdminComplaints from "./pages/AdminComplaints";
 import AdminReports from "./pages/AdminReports";
 
-// Leader pages
+/* ================= LEADER ================= */
 import LeaderNavLayout from "./pages/LeaderNavLayout";
 import LeaderDashboard from "./pages/LeaderDashboard";
 import LeaderComplaints from "./pages/LeaderComplaints";
@@ -31,11 +32,25 @@ import LeaderFarmers from "./pages/LeaderFarmers";
 import LeaderPrograms from "./pages/LeaderPrograms";
 import LeaderAgronomists from "./pages/LeaderAgronomist";
 
+/* ================= AGRONOMIST ================= */
+import AgronomistNavLayout from "./pages/AgronomistNavLayout";
+import AgronomistDashboard from "./pages/AgronomistDashboard";
+import AgronomistComplaints from "./pages/AgronomistComplaints";
+
+/* ================= FINANCE ================= */
+import FinanceNavLayout from "./pages/FinanceNavLayout";
+import FinanceDashboard from "./pages/FinanceDashboard";
+import ManageFundsPage from "./pages/ManageFundsPage";
+
 function App() {
+  const leaderUser = { name: "Leader User", role: "Leader" };
+  const agronomistUser = { name: "Agronomist User", role: "Agronomist" };
+  const financeUser = { name: "Finance User", role: "Finance" };
+
   return (
     <Router>
       <Routes>
-        {/* Public routes */}
+        {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
@@ -49,7 +64,7 @@ function App() {
         <Route path="/my-funds" element={<MyFunds />} />
         <Route path="/profile" element={<ProfilePage />} />
 
-        {/* Admin routes */}
+        {/* ================= ADMIN ROUTES ================= */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/programs/reports" element={<AdminReports />} />
@@ -62,15 +77,31 @@ function App() {
         <Route path="/admin/complaints" element={<AdminComplaints />} />
         <Route path="/admin/profile" element={<ProfilePage />} />
 
-        {/* Leader routes */}
-        <Route element={<LeaderNavLayout user={{ name: "Leader User", role: "Leader" }} />}>
+        {/* ================= LEADER ROUTES ================= */}
+        <Route element={<LeaderNavLayout user={leaderUser} />}>
           <Route path="/leader" element={<LeaderDashboard />} />
-          <Route path="/leader/profile" element={<ProfilePage currentUser={{ name: "Leader User", role: "Leader" }} />} />
+          <Route path="/leader/profile" element={<ProfilePage currentUser={leaderUser} />} />
           <Route path="/leader/programs" element={<LeaderPrograms />} />
           <Route path="/leader/complaints" element={<LeaderComplaints />} />
           <Route path="/leader/farmers" element={<LeaderFarmers />} />
           <Route path="/leader/agronomist" element={<LeaderAgronomists />} />
         </Route>
+
+        {/* ================= AGRONOMIST ROUTES ================= */}
+        <Route element={<AgronomistNavLayout user={agronomistUser} />}>
+          <Route path="/agronomist" element={<AgronomistDashboard />} />
+          <Route path="/agronomist/complaints" element={<AgronomistComplaints />} />
+        </Route>
+
+        {/* ================= FINANCE ROUTES ================= */}
+        <Route element={<FinanceNavLayout user={financeUser} />}>
+          <Route path="/finance" element={<FinanceDashboard />} />
+          <Route path="/finance/manage-funds" element={<ManageFundsPage />} />
+          
+        </Route>
+
+        {/* ================= FALLBACK ================= */}
+        <Route path="*" element={<Login />} />
       </Routes>
     </Router>
   );

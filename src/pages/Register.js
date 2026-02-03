@@ -21,6 +21,7 @@ export default function Register() {
     funding: "",
     district: "",
     leaderTitle: "",
+    department: "", // for finance role
   });
 
   const handleThemeToggle = () => {
@@ -110,6 +111,7 @@ export default function Register() {
               <option value="agronomist">Agronomist</option>
               <option value="donor">Donor</option>
               <option value="leader">Leader</option>
+              <option value="finance">Finance</option> {/* Added Finance Role */}
             </select>
           </div>
 
@@ -168,6 +170,13 @@ export default function Register() {
             </>
           )}
 
+          {role === "finance" && (
+            <>
+              <InputField label="Department" name="department" value={formData.department} onChange={handleChange} />
+              <InputField label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} />
+            </>
+          )}
+
           <button 
             type="submit"
             className="w-full py-2 bg-green-600 dark:bg-green-500 text-white font-medium rounded shadow hover:bg-green-700 transition text-sm"
@@ -184,7 +193,6 @@ export default function Register() {
 
         </form>
       </section>
-
     </div>
   );
 }
