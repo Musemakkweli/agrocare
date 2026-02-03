@@ -25,58 +25,52 @@ export default function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Here you can do actual authentication logic
+    // Authentication logic here
     console.log("Login submitted:", formData);
 
-    // Redirect to Farmer Dashboard
-    navigate("/finance");
+    // Redirect example
+    navigate("/completion");
   };
 
   return (
-    <div className="min-h-screen bg-gray-200 dark:bg-slate-900 transition-all duration-300 flex flex-col">
+    <div className="h-screen overflow-hidden bg-gray-200 dark:bg-slate-900 flex flex-col">
 
       {/* HEADER */}
-      <header className="bg-green-600 dark:bg-green-800 py-3 shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <FontAwesomeIcon icon={faLeaf} className="text-white text-xl" />
-            <span className="text-lg font-bold text-white">AgroCare</span>
+      <header className="bg-green-600 dark:bg-green-800 py-2 shadow-md">
+        <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faLeaf} className="text-white" />
+            <span className="text-white font-bold">AgroCare</span>
           </div>
-          <div className="flex items-center space-x-4">
-            <button 
+
+          <div className="flex items-center gap-3">
+            <button
               onClick={handleThemeToggle}
-              className="px-2 py-1 rounded bg-white dark:bg-green-700 dark:text-white text-green-600 font-medium shadow"
+              className="px-2 py-1 text-xs rounded bg-white dark:bg-green-700 dark:text-white text-green-600 font-medium"
             >
               {theme === "dark" ? "Light" : "Dark"}
             </button>
-            <Link to="/" title="Home">
-              <FontAwesomeIcon icon={faHome} className="text-white text-xl hover:text-green-300 transition" />
+
+            <Link to="/">
+              <FontAwesomeIcon icon={faHome} className="text-white" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Spacer */}
-      <div className="h-16"></div>
-
       {/* LOGIN FORM */}
-      <section className="flex-grow flex justify-center items-start py-10 px-4">
-        <form 
-          onSubmit={handleSubmit} 
-          className="
-            bg-white dark:bg-slate-800 
-            rounded-xl shadow-md 
-            px-6 py-8
-            max-w-sm w-full
-            space-y-5
-          "
+      <div className="flex-1 flex items-center justify-center">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-md
+                     px-6 py-6 max-w-sm w-full space-y-4"
         >
-          <h2 className="text-xl font-bold text-green-800 dark:text-green-400 text-center mb-4">
+          <h2 className="text-center font-bold text-green-700 dark:text-green-400">
             Login to Your Account
           </h2>
 
-          <div className="flex flex-col">
-            <label className="mb-1 text-green-700 dark:text-green-300 font-medium text-sm">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-green-700 dark:text-green-300">
               Email or Phone
             </label>
             <input
@@ -86,18 +80,12 @@ export default function Login() {
               onChange={handleChange}
               placeholder="Enter your email or phone number"
               required
-              className="
-                px-3 py-2 
-                rounded border border-gray-300 dark:border-slate-600 
-                focus:outline-none focus:ring-2 focus:ring-green-400 
-                dark:bg-slate-700 dark:text-white 
-                text-sm
-              "
+              className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
             />
           </div>
 
-          <div className="flex flex-col">
-            <label className="mb-1 text-green-700 dark:text-green-300 font-medium text-sm">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-green-700 dark:text-green-300">
               Password
             </label>
             <input
@@ -107,13 +95,7 @@ export default function Login() {
               onChange={handleChange}
               placeholder="Enter password"
               required
-              className="
-                px-3 py-2 
-                rounded border border-gray-300 dark:border-slate-600 
-                focus:outline-none focus:ring-2 focus:ring-green-400 
-                dark:bg-slate-700 dark:text-white 
-                text-sm
-              "
+              className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
             />
           </div>
 
@@ -123,30 +105,21 @@ export default function Login() {
             </Link>
           </div>
 
-          {/* Login Button */}
-          <button 
+          <button
             type="submit"
-            className="
-              w-full py-2.5 
-              bg-green-600 dark:bg-green-500 
-              text-white font-medium 
-              rounded shadow 
-              hover:bg-green-700 transition 
-              text-sm
-            "
+            className="w-full py-2 text-sm bg-green-600 dark:bg-green-500 text-white rounded hover:bg-green-700 transition"
           >
             Login
           </button>
 
-          <p className="text-center text-xs text-gray-700 dark:text-gray-300">
+          <p className="text-center text-xs text-gray-600 dark:text-gray-300">
             Don’t have an account?{" "}
             <Link to="/register" className="text-green-600 dark:text-green-400 font-medium hover:underline">
               Create one
             </Link>
           </p>
         </form>
-      </section>
-
+      </div>
     </div>
   );
 }

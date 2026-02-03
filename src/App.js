@@ -15,6 +15,7 @@ import FarmerDashboard from "./pages/FarmerDashboard";
 import ReportComplaint from "./pages/ReportComplaint";
 import MyFunds from "./pages/MyFunds";
 import ProfilePage from "./pages/ProfilePage";
+import ProfileCompletion from "./pages/ProfileCompletion";
 
 /* ================= ADMIN PAGES ================= */
 import AdminDashboard from "./pages/AdminDashboard";
@@ -63,6 +64,8 @@ function App() {
         <Route path="/report-complaint" element={<ReportComplaint />} />
         <Route path="/my-funds" element={<MyFunds />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/completion" element={<ProfileCompletion />} />
+        
 
         {/* ================= ADMIN ROUTES ================= */}
         <Route path="/admin" element={<AdminDashboard />} />
