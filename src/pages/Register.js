@@ -1,9 +1,34 @@
+// src/pages/Register.js
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeaf, faHome } from "@fortawesome/free-solid-svg-icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+
+// Import backend base URL
+import BASE_URL from "../config";
+
+// Reusable InputField component
+const InputField = ({ label, name, value, onChange, type = "text" }) => (
+  <div className="flex flex-col gap-1">
+    <label className="text-xs font-medium text-green-700 dark:text-green-300">
+      {label}
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      required
+      className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600
+      dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
+    />
+  </div>
+);
 
 export default function Register() {
+  const navigate = useNavigate();
+
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [role, setRole] = useState("");
   const [donorType, setDonorType] = useState("");
@@ -23,35 +48,44 @@ export default function Register() {
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
+  // Fixed handleChange to allow full input without cutting letters
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value, // correctly updates state
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Register data:", { ...formData, role, donorType });
-  };
 
-  const InputField = ({ label, name, value, onChange, type = "text" }) => (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-green-700 dark:text-green-300">
-        {label}
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        required
-        className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600
-        dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
-      />
-    </div>
-  );
+    if (formData.password !== formData.confirmPassword) {
+      return alert("Passwords do not match!");
+    }
+
+    try {
+      // Map frontend keys to backend keys
+      const payload = {
+        full_name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: role,
+      };
+
+      const response = await axios.post(`${BASE_URL}/register`, payload);
+
+      console.log("Registered successfully:", response.data);
+      alert("Registration successful!");
+      navigate("/login");
+    } catch (error) {
+      console.error("Failed to register:", error.response?.data || error.message);
+      alert("Failed to register. See console for details.");
+    }
+  };
 
   return (
     <div className="h-screen overflow-hidden bg-gray-200 dark:bg-slate-900 flex flex-col">
-
       {/* HEADER */}
       <header className="bg-green-600 dark:bg-green-800 py-2 shadow-md">
         <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
