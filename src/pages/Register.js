@@ -33,6 +33,10 @@ export default function Register() {
   const [role, setRole] = useState("");
   const [donorType, setDonorType] = useState("");
 
+  // ✅ NEW message states (replaces alert)
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -48,24 +52,26 @@ export default function Register() {
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
-  // Fixed handleChange to allow full input without cutting letters
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value, // correctly updates state
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setMessage("");
+    setError("");
+
     if (formData.password !== formData.confirmPassword) {
-      return alert("Passwords do not match!");
+      setError("Passwords do not match!");
+      return;
     }
 
     try {
-      // Map frontend keys to backend keys
       const payload = {
         full_name: formData.fullName,
         email: formData.email,
@@ -76,11 +82,19 @@ export default function Register() {
       const response = await axios.post(`${BASE_URL}/register`, payload);
 
       console.log("Registered successfully:", response.data);
-      alert("Registration successful!");
-      navigate("/login");
-    } catch (error) {
-      console.error("Failed to register:", error.response?.data || error.message);
-      alert("Failed to register. See console for details.");
+
+      // ✅ success message instead of alert
+      setMessage("Registration successful! Redirecting to login...");
+
+      setTimeout(() => {
+        navigate("/completion");
+      }, 1500);
+
+    } catch (err) {
+      console.error("Failed to register:", err.response?.data || err.message);
+
+      // ✅ error message instead of alert
+      setError("Failed to register. Please try again.");
     }
   };
 
@@ -120,6 +134,20 @@ export default function Register() {
           <h2 className="text-center font-bold text-green-700 dark:text-green-400">
             Create Account
           </h2>
+
+          {/* ✅ SUCCESS MESSAGE */}
+          {message && (
+            <div className="bg-green-100 text-green-700 text-xs p-2 rounded text-center">
+              {message}
+            </div>
+          )}
+
+          {/* ✅ ERROR MESSAGE */}
+          {error && (
+            <div className="bg-red-100 text-red-700 text-xs p-2 rounded text-center">
+              {error}
+            </div>
+          )}
 
           <InputField label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} />
           <InputField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />

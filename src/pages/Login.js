@@ -1,15 +1,58 @@
-import React, { useState } from "react";
+// src/pages/Login.js
+import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeaf, faHome } from "@fortawesome/free-solid-svg-icons";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import BASE_URL from "../config";
 
 export default function Login() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [formData, setFormData] = useState({
-    identifier: "", // email or phone
+    identifier: "",
     password: "",
   });
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState(false);
+
+  // ✅ Redirect if already logged in
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) {
+      if (!user.is_approved) {
+        setMessage("Your account is not approved yet.");
+        setError(true);
+        return;
+      }
+
+      if (!user.profile_completed) {
+        navigate("/profile-completion");
+        return;
+      }
+
+      // Approved & profile completed → go to dashboard
+      switch (user.role) {
+        case "farmer":
+          navigate("/farmer/dashboard");
+          break;
+        case "agronomist":
+          navigate("/agronomist/dashboard");
+          break;
+        case "donor":
+          navigate("/donor");
+          break;
+        case "leader":
+          navigate("/leader");
+          break;
+        case "finance":
+          navigate("/finance");
+          break;
+        default:
+          navigate("/");
+      }
+    }
+  }, [navigate]);
 
   const handleThemeToggle = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
@@ -22,19 +65,68 @@ export default function Login() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Authentication logic here
-    console.log("Login submitted:", formData);
+    setMessage("");
+    setError(false);
 
-    // Redirect example
-    navigate("/completion");
+    try {
+      const response = await axios.post(`${BASE_URL}/login`, {
+        identifier: formData.identifier,
+        password: formData.password,
+      });
+
+      const { user, access_token, message: backendMessage } = response.data;
+
+      // Save user and token
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Check approval & profile completion
+      if (!user.is_approved) {
+        setError(true);
+        setMessage("Your account is not approved yet.");
+        return;
+      }
+
+      if (!user.profile_completed) {
+        navigate("/profile-completion");
+        return;
+      }
+
+      // Approved & profile completed → go to dashboard
+      switch (user.role) {
+        case "farmer":
+          navigate("/farmer/dashboard");
+          break;
+        case "agronomist":
+          navigate("/agronomist/dashboard");
+          break;
+        case "donor":
+          navigate("/donor");
+          break;
+        case "leader":
+          navigate("/leader");
+          break;
+        case "finance":
+          navigate("/finance");
+          break;
+        default:
+          navigate("/");
+      }
+
+      setMessage(backendMessage || "Login successful!");
+    } catch (err) {
+      console.error(err);
+      setError(true);
+      setMessage(
+        err.response?.data?.detail || "Login failed. Check your credentials."
+      );
+    }
   };
 
   return (
     <div className="h-screen overflow-hidden bg-gray-200 dark:bg-slate-900 flex flex-col">
-
       {/* HEADER */}
       <header className="bg-green-600 dark:bg-green-800 py-2 shadow-md">
         <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
@@ -42,7 +134,6 @@ export default function Login() {
             <FontAwesomeIcon icon={faLeaf} className="text-white" />
             <span className="text-white font-bold">AgroCare</span>
           </div>
-
           <div className="flex items-center gap-3">
             <button
               onClick={handleThemeToggle}
@@ -50,7 +141,6 @@ export default function Login() {
             >
               {theme === "dark" ? "Light" : "Dark"}
             </button>
-
             <Link to="/">
               <FontAwesomeIcon icon={faHome} className="text-white" />
             </Link>
@@ -62,12 +152,21 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center">
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-md
-                     px-6 py-6 max-w-sm w-full space-y-4"
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-md px-6 py-6 max-w-sm w-full space-y-4"
         >
           <h2 className="text-center font-bold text-green-700 dark:text-green-400">
             Login to Your Account
           </h2>
+
+          {message && (
+            <p
+              className={`text-sm text-center ${
+                error ? "text-red-600" : "text-green-600"
+              } font-medium`}
+            >
+              {message}
+            </p>
+          )}
 
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-green-700 dark:text-green-300">
@@ -100,7 +199,10 @@ export default function Login() {
           </div>
 
           <div className="text-right text-xs">
-            <Link to="/forgot-password" className="text-green-600 dark:text-green-400 hover:underline">
+            <Link
+              to="/forgot-password"
+              className="text-green-600 dark:text-green-400 hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
@@ -114,7 +216,10 @@ export default function Login() {
 
           <p className="text-center text-xs text-gray-600 dark:text-gray-300">
             Don’t have an account?{" "}
-            <Link to="/register" className="text-green-600 dark:text-green-400 font-medium hover:underline">
+            <Link
+              to="/register"
+              className="text-green-600 dark:text-green-400 font-medium hover:underline"
+            >
               Create one
             </Link>
           </p>

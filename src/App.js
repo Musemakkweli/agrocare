@@ -43,10 +43,15 @@ import FinanceNavLayout from "./pages/FinanceNavLayout";
 import FinanceDashboard from "./pages/FinanceDashboard";
 import ManageFundsPage from "./pages/ManageFundsPage";
 
+/* ================= DONOR ================= */
+import DonorNavLayout from "./pages/DonorNavLayout";
+import DonorDashboard from "./pages/DonorDashboard";
+
 function App() {
   const leaderUser = { name: "Leader User", role: "Leader" };
   const agronomistUser = { name: "Agronomist User", role: "Agronomist" };
   const financeUser = { name: "Finance User", role: "Finance" };
+  const donorUser = { name: "Donor User", role: "Donor" };
 
   return (
     <Router>
@@ -102,6 +107,11 @@ function App() {
           <Route path="/finance/manage-funds" element={<ManageFundsPage />} />
           
         </Route>
+        
+        {/* ================= DONOR ROUTES ================= */}
+        <Route element={<DonorNavLayout user={donorUser} />}>
+          <Route path="/donor" element={<DonorDashboard />} />
+          </Route>
 
         {/* ================= FALLBACK ================= */}
         <Route path="*" element={<Login />} />
