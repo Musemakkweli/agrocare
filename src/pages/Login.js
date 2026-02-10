@@ -14,6 +14,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // <-- toggle password
 
   /* ==============================
      Redirect Logic
@@ -26,7 +27,7 @@ export default function Login() {
         return;
       }
 
-      if (!user.profile_completed) {
+      if (!user.is_profile_completed) {
         navigate("/completion");
         return;
       }
@@ -207,17 +208,24 @@ export default function Login() {
             />
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 relative">
             <label className="text-xs font-medium text-green-700 dark:text-green-300">Password</label>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
               placeholder="Enter password"
-              className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
+              className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400 w-full"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-7 text-green-600 dark:text-green-400 text-sm"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
           </div>
 
           <div className="text-right text-xs">
