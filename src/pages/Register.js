@@ -4,8 +4,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeaf, faHome } from "@fortawesome/free-solid-svg-icons";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-
-// Import backend base URL
 import BASE_URL from "../config";
 
 // Reusable InputField component
@@ -32,8 +30,8 @@ export default function Register() {
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [role, setRole] = useState("");
   const [donorType, setDonorType] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // ✅ NEW message states (replaces alert)
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -71,11 +69,19 @@ export default function Register() {
       return;
     }
 
+    if (formData.phone.length !== 10) {
+      setError("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const payload = {
         full_name: formData.fullName,
         email: formData.email,
         password: formData.password,
+        phone: formData.phone,
         role: role,
       };
 
@@ -83,18 +89,21 @@ export default function Register() {
 
       console.log("Registered successfully:", response.data);
 
-      // ✅ success message instead of alert
       setMessage("Registration successful! Redirecting to login...");
-
-      setTimeout(() => {
-        navigate("/completion");
-      }, 1500);
-
+      setError("");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       console.error("Failed to register:", err.response?.data || err.message);
 
-      // ✅ error message instead of alert
-      setError("Failed to register. Please try again.");
+      if (err.response?.data?.detail?.includes("already exists")) {
+        setError("This phone number or email is already registered.");
+      } else if (err.response?.data?.detail?.includes("password")) {
+        setError("Password does not meet requirements or do not match.");
+      } else {
+        setError(err.response?.data?.message || "Failed to register. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,36 +133,67 @@ export default function Register() {
         </div>
       </header>
 
-      {/* FORM */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* FORM - scrollable inside fixed page */}
+      <div className="flex-1 flex items-center justify-center overflow-y-auto">
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-slate-800 rounded-xl shadow-md
-          p-4 w-full max-w-sm space-y-3"
+          p-6 w-full max-w-sm space-y-3"
         >
           <h2 className="text-center font-bold text-green-700 dark:text-green-400">
             Create Account
           </h2>
 
-          {/* ✅ SUCCESS MESSAGE */}
+          {/* SUCCESS MESSAGE */}
           {message && (
             <div className="bg-green-100 text-green-700 text-xs p-2 rounded text-center">
               {message}
             </div>
           )}
 
-          {/* ✅ ERROR MESSAGE */}
+          {/* ERROR MESSAGE */}
           {error && (
             <div className="bg-red-100 text-red-700 text-xs p-2 rounded text-center">
               {error}
             </div>
           )}
 
-          <InputField label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} />
-          <InputField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
-          <InputField label="Password" name="password" value={formData.password} onChange={handleChange} type="password" />
-          <InputField label="Confirm Password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} type="password" />
-          <InputField label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} />
+          <InputField
+            label="Full Name"
+            name="fullName"
+            value={formData.fullName}
+            onChange={handleChange}
+          />
+          <InputField
+            label="Email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            type="email"
+          />
+          <InputField
+            label="Password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            type="password"
+          />
+          <InputField
+            label="Confirm Password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            type="password"
+          />
+          <InputField
+            label="Phone Number"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+          />
+          {formData.phone.length > 0 && formData.phone.length !== 10 && (
+            <p className="text-red-600 text-xs">Phone number must be exactly 10 digits</p>
+          )}
 
           {/* ROLE */}
           <div className="flex flex-col gap-1">
@@ -201,15 +241,19 @@ export default function Register() {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full py-2 text-sm bg-green-600 dark:bg-green-500
-            text-white rounded hover:bg-green-700 transition"
+            text-white rounded hover:bg-green-700 transition disabled:opacity-50"
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
 
           <p className="text-center text-xs text-gray-600 dark:text-gray-300">
             Already have an account?{" "}
-            <Link to="/login" className="text-green-600 dark:text-green-400 font-medium">
+            <Link
+              to="/login"
+              className="text-green-600 dark:text-green-400 font-medium"
+            >
               Login
             </Link>
           </p>

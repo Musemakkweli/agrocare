@@ -1,5 +1,5 @@
 // src/pages/Login.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeaf, faHome } from "@fortawesome/free-solid-svg-icons";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,36 +8,35 @@ import BASE_URL from "../config";
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
-  const [formData, setFormData] = useState({
-    identifier: "",
-    password: "",
-  });
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
 
-  // ✅ Redirect if already logged in
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user) {
+  /* ==============================
+     Redirect Logic
+  ============================== */
+  const redirectUser = useCallback(
+    (user) => {
       if (!user.is_approved) {
-        setMessage("Your account is not approved yet.");
         setError(true);
+        setMessage("Your account is not approved yet.");
         return;
       }
 
       if (!user.profile_completed) {
-        navigate("/profile-completion");
+        navigate("/completion");
         return;
       }
 
-      // Approved & profile completed → go to dashboard
       switch (user.role) {
         case "farmer":
           navigate("/farmer/dashboard");
           break;
         case "agronomist":
-          navigate("/agronomist/dashboard");
+          navigate("/agronomist");
           break;
         case "donor":
           navigate("/donor");
@@ -51,9 +50,64 @@ export default function Login() {
         default:
           navigate("/");
       }
-    }
-  }, [navigate]);
+    },
+    [navigate]
+  );
 
+  /* ==============================
+     Fetch latest profile after login
+  ============================== */
+  const fetchLatestUser = async (user) => {
+    try {
+      let endpoint = "";
+      switch (user.role) {
+        case "farmer":
+          endpoint = `${BASE_URL}/profile/farmer/${user.id}`;
+          break;
+        case "agronomist":
+          endpoint = `${BASE_URL}/profile/agronomist/${user.id}`;
+          break;
+        case "donor":
+          endpoint = `${BASE_URL}/profile/donor/${user.id}`;
+          break;
+        case "leader":
+          endpoint = `${BASE_URL}/profile/leader/${user.id}`;
+          break;
+        case "finance":
+          endpoint = `${BASE_URL}/profile/finance/${user.id}`;
+          break;
+        default:
+          return user;
+      }
+
+      const response = await axios.get(endpoint, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      // Merge updated data with login response
+      return { ...user, ...response.data };
+    } catch (err) {
+      console.error("Failed to fetch latest user profile:", err);
+      return user; // fallback to login user
+    }
+  };
+
+  /* ==============================
+     Auto redirect if already logged in
+  ============================== */
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    if (savedUser) {
+      fetchLatestUser(savedUser).then((latestUser) => {
+        localStorage.setItem("user", JSON.stringify(latestUser));
+        redirectUser(latestUser);
+      });
+    }
+  }, [redirectUser]);
+
+  /* ==============================
+     Theme toggle
+  ============================== */
   const handleThemeToggle = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
@@ -61,70 +115,46 @@ export default function Login() {
     document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
+  /* ==============================
+     Handle input change
+  ============================== */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /* ==============================
+     Handle login submit
+  ============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
     setError(false);
+    setLoading(true);
 
     try {
-      const response = await axios.post(`${BASE_URL}/login`, {
-        identifier: formData.identifier,
-        password: formData.password,
-      });
-
+      const response = await axios.post(`${BASE_URL}/login`, formData);
       const { user, access_token, message: backendMessage } = response.data;
 
-      // Save user and token
       localStorage.setItem("token", access_token);
-      localStorage.setItem("user", JSON.stringify(user));
 
-      // Check approval & profile completion
-      if (!user.is_approved) {
-        setError(true);
-        setMessage("Your account is not approved yet.");
-        return;
-      }
-
-      if (!user.profile_completed) {
-        navigate("/profile-completion");
-        return;
-      }
-
-      // Approved & profile completed → go to dashboard
-      switch (user.role) {
-        case "farmer":
-          navigate("/farmer/dashboard");
-          break;
-        case "agronomist":
-          navigate("/agronomist/dashboard");
-          break;
-        case "donor":
-          navigate("/donor");
-          break;
-        case "leader":
-          navigate("/leader");
-          break;
-        case "finance":
-          navigate("/finance");
-          break;
-        default:
-          navigate("/");
-      }
+      // Fetch latest profile from backend
+      const latestUser = await fetchLatestUser(user);
+      localStorage.setItem("user", JSON.stringify(latestUser));
 
       setMessage(backendMessage || "Login successful!");
+      redirectUser(latestUser);
     } catch (err) {
       console.error(err);
       setError(true);
-      setMessage(
-        err.response?.data?.detail || "Login failed. Check your credentials."
-      );
+      setMessage(err.response?.data?.detail || "Login failed. Check your credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* ==============================
+     UI
+  ============================== */
   return (
     <div className="h-screen overflow-hidden bg-gray-200 dark:bg-slate-900 flex flex-col">
       {/* HEADER */}
@@ -159,67 +189,54 @@ export default function Login() {
           </h2>
 
           {message && (
-            <p
-              className={`text-sm text-center ${
-                error ? "text-red-600" : "text-green-600"
-              } font-medium`}
-            >
+            <p className={`text-sm text-center ${error ? "text-red-600" : "text-green-600"} font-medium`}>
               {message}
             </p>
           )}
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-green-700 dark:text-green-300">
-              Email or Phone
-            </label>
+            <label className="text-xs font-medium text-green-700 dark:text-green-300">Email or Phone</label>
             <input
               type="text"
               name="identifier"
               value={formData.identifier}
               onChange={handleChange}
-              placeholder="Enter your email or phone number"
               required
+              placeholder="Enter your email or phone number"
               className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-green-700 dark:text-green-300">
-              Password
-            </label>
+            <label className="text-xs font-medium text-green-700 dark:text-green-300">Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Enter password"
               required
+              placeholder="Enter password"
               className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-1 focus:ring-green-400"
             />
           </div>
 
           <div className="text-right text-xs">
-            <Link
-              to="/forgot-password"
-              className="text-green-600 dark:text-green-400 hover:underline"
-            >
+            <Link to="/forgot-password" className="text-green-600 dark:text-green-400 hover:underline">
               Forgot password?
             </Link>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 text-sm bg-green-600 dark:bg-green-500 text-white rounded hover:bg-green-700 transition"
+            disabled={loading}
+            className="w-full py-2 text-sm bg-green-600 dark:bg-green-500 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
           <p className="text-center text-xs text-gray-600 dark:text-gray-300">
             Don’t have an account?{" "}
-            <Link
-              to="/register"
-              className="text-green-600 dark:text-green-400 font-medium hover:underline"
-            >
+            <Link to="/register" className="text-green-600 dark:text-green-400 font-medium hover:underline">
               Create one
             </Link>
           </p>

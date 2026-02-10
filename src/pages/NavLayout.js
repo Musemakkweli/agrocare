@@ -43,11 +43,17 @@ export default function NavLayout({ children, user }) {
     "w-full flex items-center gap-2 px-6 py-2 text-sm rounded-lg transition hover:bg-green-400 dark:hover:bg-green-600";
 
   const handleLogout = () => setShowLogoutModal(true);
+const confirmLogout = () => {
+  // ✅ Clear user session
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 
-  const confirmLogout = () => {
-    setShowLogoutModal(false);
-    navigate("/login");
-  };
+  setShowLogoutModal(false);
+
+  // ✅ Go to login page
+  navigate("/login");
+};
+
 
   const getInitials = (name) => {
     if (!name) return "F";
