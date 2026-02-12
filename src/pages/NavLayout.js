@@ -14,7 +14,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 
-export default function NavLayout({ children, user }) {
+export default function NavLayout({ children }) {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("theme") || "light"
@@ -22,12 +22,24 @@ export default function NavLayout({ children, user }) {
   const [showPrograms, setShowPrograms] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [user, setUser] = useState(null);
 
   const notifications = [
     "⚠️ Possible pest outbreak nearby",
     "🌦️ Heavy rain expected tomorrow",
     "🌱 Fertilizer support available"
   ];
+
+  // ✅ Load logged-in user from localStorage
+  useEffect(() => {
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    if (!savedUser) {
+      // Not logged in, redirect to login
+      navigate("/login");
+      return;
+    }
+    setUser(savedUser);
+  }, [navigate]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -43,17 +55,12 @@ export default function NavLayout({ children, user }) {
     "w-full flex items-center gap-2 px-6 py-2 text-sm rounded-lg transition hover:bg-green-400 dark:hover:bg-green-600";
 
   const handleLogout = () => setShowLogoutModal(true);
-const confirmLogout = () => {
-  // ✅ Clear user session
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-
-  setShowLogoutModal(false);
-
-  // ✅ Go to login page
-  navigate("/login");
-};
-
+  const confirmLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setShowLogoutModal(false);
+    navigate("/login");
+  };
 
   const getInitials = (name) => {
     if (!name) return "F";
@@ -64,9 +71,10 @@ const confirmLogout = () => {
       .toUpperCase();
   };
 
+  if (!user) return null; // Avoid rendering until user is loaded
+
   return (
     <div className="flex h-screen bg-gray-200 dark:bg-slate-900 overflow-hidden">
-
       {/* ================= SIDEBAR ================= */}
       <aside
         className={`fixed top-0 left-0 h-full z-50 ${
@@ -87,12 +95,12 @@ const confirmLogout = () => {
         {/* USER INFO */}
         <div className="flex items-center gap-3 p-6">
           <div className="w-12 h-12 rounded-full bg-green-300 dark:bg-green-800 flex items-center justify-center text-green-900 dark:text-white font-bold text-lg">
-            {getInitials(user?.name)}
+            {getInitials(user.full_name)}
           </div>
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="font-semibold">{user?.name || "Farmer"}</span>
-              <span className="text-xs">{user?.role || "Agricultural User"}</span>
+              <span className="font-semibold">{user.full_name}</span>
+              <span className="text-xs">{user.role}</span>
             </div>
           )}
         </div>
@@ -146,9 +154,7 @@ const confirmLogout = () => {
       </aside>
 
       {/* ================= MAIN CONTENT ================= */}
-      <main
-        className={`flex-1 flex flex-col ml-20 sm:ml-64 overflow-hidden`}
-      >
+      <main className={`flex-1 flex flex-col ml-20 sm:ml-64 overflow-hidden`}>
         {/* HEADER */}
         <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-slate-900 shadow flex-shrink-0 sticky top-0 z-40">
           <h1 className="text-2xl font-bold text-green-800 dark:text-green-400">

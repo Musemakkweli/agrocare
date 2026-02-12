@@ -1,28 +1,82 @@
-import React from "react"; 
+import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import NavLayout from "./NavLayout";
+import BASE_URL from "../config"; // your config file with backend URL
 
 export default function FarmerDashboard() {
-  const farmStats = [
-    { title: "Total Fields", value: 5 },
-    { title: "Upcoming Harvests", value: 3 },
-    { title: "Pest Alerts", value: 2 },
-    { title: "Weather Alerts", value: 1 }
-  ];
+  const [farmStats, setFarmStats] = useState([]);
+  const [cropHealthData, setCropHealthData] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const cropHealthData = [
-    { week: "W1", health: 65 },
-    { week: "W2", health: 72 },
-    { week: "W3", health: 60 },
-    { week: "W4", health: 78 },
-    { week: "W5", health: 85 }
-  ];
+  useEffect(() => {
+    let mounted = true;
 
-  const complaints = [
-    { id: 1, type: "Animal Damage", status: "Pending", date: "2026-01-25", description: "Goats destroyed maize field." },
-    { id: 2, type: "Robbery", status: "Resolved", date: "2026-01-20", description: "Tools stolen from storage." },
-    { id: 3, type: "Flooded Field", status: "In Progress", date: "2026-01-28", description: "Heavy rain flooded lower field." }
-  ];
+    const loadDashboard = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "null");
+        const user_id = user?.id;
+        if (!user_id) return;
+
+        // Fetch farm stats
+        const statsRes = await fetch(`${BASE_URL}/farmer/${user_id}/stats`);
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          if (mounted) {
+            setFarmStats([
+              { title: "Total Fields", value: data.total_fields ?? 0 },
+              { title: "Upcoming Harvests", value: data.upcoming_harvests ?? 0 },
+              { title: "Pest Alerts", value: data.pest_alerts ?? 0 },
+              { title: "Weather Alerts", value: data.weather_alerts ?? 0 },
+            ]);
+          }
+        }
+
+        // Fetch crop health
+        const cropRes = await fetch(`${BASE_URL}/farmer/${user_id}/crop-health`);
+        if (cropRes.ok) {
+          const data = await cropRes.json();
+          if (mounted) setCropHealthData(data);
+        }
+
+        // Fetch user complaints
+        const compRes = await fetch(`${BASE_URL}/complaints/user/${user_id}`);
+        if (compRes.ok) {
+          const data = await compRes.json();
+          if (mounted) {
+            const mapped = data.map((c) => ({
+              id: c.id,
+              type: c.type,
+              status: c.status,
+              date: c.created_at ? new Date(c.created_at).toLocaleDateString() : "",
+              description: c.description,
+            }));
+            setComplaints(mapped);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <NavLayout>
+        <div className="text-center py-20 text-gray-700 dark:text-gray-300">
+          Loading dashboard...
+        </div>
+      </NavLayout>
+    );
+  }
 
   return (
     <NavLayout>
@@ -42,10 +96,7 @@ export default function FarmerDashboard() {
               key={i}
               className="bg-green-200 dark:bg-green-800 rounded-2xl p-5 shadow transition transform hover:-translate-y-1 cursor-pointer flex flex-col items-center"
             >
-              {/* Title */}
               <span className="text-lg font-semibold text-green-900 dark:text-green-50">{s.title}</span>
-
-              {/* Number/Value */}
               <p className="text-3xl font-bold text-green-900 dark:text-green-50 mt-2">{s.value}</p>
             </div>
           ))}
@@ -54,14 +105,12 @@ export default function FarmerDashboard() {
 
       {/* CROP HEALTH TREND */}
       <section className="bg-gray-100 dark:bg-slate-800 rounded-2xl p-4 shadow mb-8">
-        <h2 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-3">
-          Crop Health Trend
-        </h2>
+        <h2 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-3">Crop Health Trend</h2>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={cropHealthData}>
-              <XAxis dataKey="week" />
-              <YAxis />
+              <XAxis dataKey="week" stroke="#374151" />
+              <YAxis stroke="#374151" />
               <Tooltip />
               <Line type="monotone" dataKey="health" stroke="#16a34a" strokeWidth={3} />
             </LineChart>
@@ -71,9 +120,7 @@ export default function FarmerDashboard() {
 
       {/* USER COMPLAINTS */}
       <section>
-        <h2 className="text-xl font-semibold text-green-800 dark:text-green-400 mb-3">
-          My Complaints
-        </h2>
+        <h2 className="text-xl font-semibold text-green-800 dark:text-green-400 mb-3">My Complaints</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {complaints.map(c => (
             <div
@@ -94,7 +141,6 @@ export default function FarmerDashboard() {
                   {c.status}
                 </span>
               </div>
-
               <p className="text-sm text-green-800 dark:text-green-200">{c.description}</p>
               <span className="text-xs text-gray-600 dark:text-gray-400">Submitted: {c.date}</span>
             </div>
