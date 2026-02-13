@@ -1,152 +1,255 @@
 import React, { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSeedling,
+  faCalendarCheck,
+  faBug,
+  faCloudSun,
+  faTriangleExclamation,
+  faPlus,
+} from "@fortawesome/free-solid-svg-icons";
+
 import NavLayout from "./NavLayout";
-import BASE_URL from "../config"; // your config file with backend URL
+import BASE_URL from "../config";
 
 export default function FarmerDashboard() {
-  const [farmStats, setFarmStats] = useState([]);
-  const [cropHealthData, setCropHealthData] = useState([]);
+  const [dailyActivity, setDailyActivity] = useState([]);
+  const [cropHealth, setCropHealth] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
+  // Toggle states for forms
+  const [showFieldForm, setShowFieldForm] = useState(false);
+  const [showHarvestForm, setShowHarvestForm] = useState(false);
+  const [showPestForm, setShowPestForm] = useState(false);
 
-    const loadDashboard = async () => {
+  // Form states
+  const [fieldForm, setFieldForm] = useState({ name: "", area: "", crop_type: "", location: "" });
+  const [harvestForm, setHarvestForm] = useState({ field_id: "", crop_type: "", harvest_date: "" });
+  const [pestForm, setPestForm] = useState({ field_id: "", pest_type: "", severity: "", description: "" });
+
+  // Load data
+  useEffect(() => {
+    const load = async () => {
       try {
         const user = JSON.parse(localStorage.getItem("user") || "null");
-        const user_id = user?.id;
-        if (!user_id) return;
+        if (!user?.id) return;
 
-        // Fetch farm stats
-        const statsRes = await fetch(`${BASE_URL}/farmer/${user_id}/stats`);
-        if (statsRes.ok) {
-          const data = await statsRes.json();
-          if (mounted) {
-            setFarmStats([
-              { title: "Total Fields", value: data.total_fields ?? 0 },
-              { title: "Upcoming Harvests", value: data.upcoming_harvests ?? 0 },
-              { title: "Pest Alerts", value: data.pest_alerts ?? 0 },
-              { title: "Weather Alerts", value: data.weather_alerts ?? 0 },
-            ]);
-          }
-        }
+        const [activityRes, cropRes, compRes] = await Promise.all([
+          fetch(`${BASE_URL}/farmer/${user.id}/daily-activity`),
+          fetch(`${BASE_URL}/farmer/${user.id}/crop-health`),
+          fetch(`${BASE_URL}/complaints/user/${user.id}`),
+        ]);
 
-        // Fetch crop health
-        const cropRes = await fetch(`${BASE_URL}/farmer/${user_id}/crop-health`);
-        if (cropRes.ok) {
-          const data = await cropRes.json();
-          if (mounted) setCropHealthData(data);
-        }
+        const activityData = await activityRes.json();
+        const cropData = await cropRes.json();
+        const compData = await compRes.json();
 
-        // Fetch user complaints
-        const compRes = await fetch(`${BASE_URL}/complaints/user/${user_id}`);
-        if (compRes.ok) {
-          const data = await compRes.json();
-          if (mounted) {
-            const mapped = data.map((c) => ({
-              id: c.id,
-              type: c.type,
-              status: c.status,
-              date: c.created_at ? new Date(c.created_at).toLocaleDateString() : "",
-              description: c.description,
-            }));
-            setComplaints(mapped);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load dashboard:", err);
+        setDailyActivity(activityData.data || []);
+        setCropHealth(cropData.data || cropData);
+        setComplaints(compData || []);
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
 
-    loadDashboard();
-
-    return () => {
-      mounted = false;
-    };
+    load();
   }, []);
 
-  if (loading) {
-    return (
-      <NavLayout>
-        <div className="text-center py-20 text-gray-700 dark:text-gray-300">
-          Loading dashboard...
-        </div>
-      </NavLayout>
-    );
-  }
+  if (loading) return <NavLayout>Loading...</NavLayout>;
+
+  // Use dailyActivity counts instead of stats
+  const totalFields = dailyActivity.reduce((acc, d) => acc + d.value, 0);
+  const upcomingHarvests = totalFields; // adjust if you add real harvest counts
+  const pestAlerts = 0; // placeholder, update when backend supports
+  const weatherAlerts = 0; // placeholder, update when backend supports
+
+  const cards = [
+    { title: "Fields", value: totalFields, icon: faSeedling },
+    { title: "Harvests", value: upcomingHarvests, icon: faCalendarCheck },
+    { title: "Pests", value: pestAlerts, icon: faBug },
+    { title: "Weather", value: weatherAlerts, icon: faCloudSun },
+    { title: "Complaints", value: complaints.length, icon: faTriangleExclamation },
+  ];
+
+  const weeklyActivity = dailyActivity.map((d) => ({
+    week: d.day,
+    value: d.value,
+  }));
+
+  // Submit handlers
+  const submitField = async (e) => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!user?.id) return;
+
+    await fetch(`${BASE_URL}/fields`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...fieldForm, user_id: user.id }),
+    });
+
+    setShowFieldForm(false);
+    setFieldForm({ name: "", area: "", crop_type: "", location: "" });
+  };
+
+  const submitHarvest = async (e) => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!user?.id) return;
+
+    await fetch(`${BASE_URL}/harvests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...harvestForm, farmer_id: user.id }),
+    });
+
+    setShowHarvestForm(false);
+    setHarvestForm({ field_id: "", crop_type: "", harvest_date: "" });
+  };
+
+  const submitPest = async (e) => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!user?.id) return;
+
+    await fetch(`${BASE_URL}/alerts/pests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...pestForm, farmer_id: user.id }),
+    });
+
+    setShowPestForm(false);
+    setPestForm({ field_id: "", pest_type: "", severity: "", description: "" });
+  };
 
   return (
     <NavLayout>
-      {/* DASHBOARD HEADER */}
-      <section className="mb-6">
-        <h1 className="text-3xl font-bold text-green-800 dark:text-green-400">Farmer Dashboard</h1>
-        <p className="text-gray-700 dark:text-gray-300 text-sm mt-1">
-          Overview of your farm activities and current complaints
-        </p>
-      </section>
+      <div className="min-h-screen bg-green-50 dark:bg-gray-900 p-6">
 
-      {/* MINI CARDS */}
-      <section className="mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {farmStats.map((s, i) => (
+        {/* HEADER */}
+        <h1 className="text-3xl font-bold text-green-800 dark:text-green-400 mb-8">
+          Farmer Dashboard 🌱
+        </h1>
+
+        {/* MINI CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
+          {cards.map((c, i) => (
             <div
               key={i}
-              className="bg-green-200 dark:bg-green-800 rounded-2xl p-5 shadow transition transform hover:-translate-y-1 cursor-pointer flex flex-col items-center"
+              className="cursor-pointer bg-green-300 dark:bg-green-700 rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200 p-5 flex flex-col items-center justify-center"
             >
-              <span className="text-lg font-semibold text-green-900 dark:text-green-50">{s.title}</span>
-              <p className="text-3xl font-bold text-green-900 dark:text-green-50 mt-2">{s.value}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CROP HEALTH TREND */}
-      <section className="bg-gray-100 dark:bg-slate-800 rounded-2xl p-4 shadow mb-8">
-        <h2 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-3">Crop Health Trend</h2>
-        <div className="h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={cropHealthData}>
-              <XAxis dataKey="week" stroke="#374151" />
-              <YAxis stroke="#374151" />
-              <Tooltip />
-              <Line type="monotone" dataKey="health" stroke="#16a34a" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      {/* USER COMPLAINTS */}
-      <section>
-        <h2 className="text-xl font-semibold text-green-800 dark:text-green-400 mb-3">My Complaints</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {complaints.map(c => (
-            <div
-              key={c.id}
-              className="bg-green-100 dark:bg-green-900 rounded-2xl p-5 shadow flex flex-col gap-2 transition hover:-translate-y-1"
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-green-900 dark:text-green-50">{c.type}</span>
-                <span
-                  className={`font-semibold ${
-                    c.status === "Resolved"
-                      ? "text-green-600 dark:text-green-300"
-                      : c.status === "Pending"
-                      ? "text-red-500 dark:text-red-400"
-                      : "text-yellow-500 dark:text-yellow-400"
-                  }`}
-                >
-                  {c.status}
-                </span>
+              <div className="bg-green-400 dark:bg-green-900 p-3 rounded-full mb-2">
+                <FontAwesomeIcon icon={c.icon} className="text-green-900 dark:text-green-300 text-xl" />
               </div>
-              <p className="text-sm text-green-800 dark:text-green-200">{c.description}</p>
-              <span className="text-xs text-gray-600 dark:text-gray-400">Submitted: {c.date}</span>
+              <p className="text-sm font-semibold text-green-900 dark:text-green-200">{c.title}</p>
+              <p className="text-2xl font-bold text-green-900 dark:text-white">{c.value ?? 0}</p>
             </div>
           ))}
         </div>
-      </section>
+
+        {/* CHARTS */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-10">
+          <div className="bg-green-100 rounded-2xl p-6 shadow-md border border-green-200 dark:bg-gray-800 dark:border-gray-700">
+            <h2 className="font-semibold mb-4 dark:text-gray-200">Crop Health Trend</h2>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={cropHealth}>
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="health" strokeWidth={3} stroke="#16a34a" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-green-100 rounded-2xl p-6 shadow-md border border-green-200 dark:bg-gray-800 dark:border-gray-700">
+            <h2 className="font-semibold mb-4 dark:text-gray-200">Weekly Activity</h2>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyActivity}>
+                  <XAxis dataKey="week" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#16a34a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* COMPLAINTS */}
+        <div className="bg-green-200 rounded-2xl p-6 shadow-md border border-green-300 dark:bg-gray-800 dark:border-gray-700 mb-10">
+          <h2 className="font-semibold mb-4 dark:text-gray-200">Recent Complaints</h2>
+          {complaints.slice(0, 3).map((c) => (
+            <div key={c.id} className="border-b dark:border-gray-700 py-2 text-sm dark:text-gray-300 hover:bg-green-300/30 dark:hover:bg-gray-700 rounded transition px-2">
+              {c.type} — {c.status}
+            </div>
+          ))}
+        </div>
+
+        {/* QUICK ACTIONS */}
+        <div className="bg-green-200 rounded-2xl p-6 shadow-md border border-green-300 dark:bg-gray-800 dark:border-gray-700 mb-10">
+          <h2 className="font-semibold mb-4 dark:text-gray-200">Quick Actions</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <button onClick={() => setShowFieldForm(!showFieldForm)} className="bg-green-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green-700 hover:scale-105 transition-all duration-200">
+              <FontAwesomeIcon icon={faPlus} /> Add Field
+            </button>
+            <button onClick={() => setShowHarvestForm(!showHarvestForm)} className="bg-green-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green-700 hover:scale-105 transition-all duration-200">
+              <FontAwesomeIcon icon={faPlus} /> Schedule Harvest
+            </button>
+            <button onClick={() => setShowPestForm(!showPestForm)} className="bg-green-600 text-white p-3 rounded-xl flex items-center justify-center gap-2 hover:bg-green-700 hover:scale-105 transition-all duration-200">
+              <FontAwesomeIcon icon={faPlus} /> Report Pest
+            </button>
+          </div>
+
+          {/* FORMS */}
+          {showFieldForm && (
+            <form onSubmit={submitField} className="bg-white p-6 rounded-2xl shadow space-y-3 mt-4">
+              <h3 className="font-semibold">Add Field</h3>
+              <input placeholder="Name" value={fieldForm.name} onChange={e => setFieldForm({...fieldForm, name: e.target.value})} className="w-full p-2 border rounded"/>
+              <input placeholder="Area" value={fieldForm.area} onChange={e => setFieldForm({...fieldForm, area: e.target.value})} className="w-full p-2 border rounded"/>
+              <input placeholder="Crop Type" value={fieldForm.crop_type} onChange={e => setFieldForm({...fieldForm, crop_type: e.target.value})} className="w-full p-2 border rounded"/>
+              <input placeholder="Location" value={fieldForm.location} onChange={e => setFieldForm({...fieldForm, location: e.target.value})} className="w-full p-2 border rounded"/>
+              <button className="bg-green-600 text-white p-2 rounded w-full"><FontAwesomeIcon icon={faPlus}/> Add</button>
+            </form>
+          )}
+
+          {showHarvestForm && (
+            <form onSubmit={submitHarvest} className="bg-white p-6 rounded-2xl shadow space-y-3 mt-4">
+              <h3 className="font-semibold">Schedule Harvest</h3>
+              <input placeholder="Field ID" onChange={e => setHarvestForm({...harvestForm, field_id: e.target.value})} className="w-full p-2 border rounded"/>
+              <input placeholder="Crop Type" onChange={e => setHarvestForm({...harvestForm, crop_type: e.target.value})} className="w-full p-2 border rounded"/>
+              <input type="date" onChange={e => setHarvestForm({...harvestForm, harvest_date: e.target.value})} className="w-full p-2 border rounded"/>
+              <button className="bg-green-600 text-white p-2 rounded w-full">Save</button>
+            </form>
+          )}
+
+          {showPestForm && (
+            <form onSubmit={submitPest} className="bg-white p-6 rounded-2xl shadow space-y-3 mt-4">
+              <h3 className="font-semibold">Report Pest</h3>
+              <input placeholder="Field ID" onChange={e => setPestForm({...pestForm, field_id: e.target.value})} className="w-full p-2 border rounded"/>
+              <input placeholder="Pest Type" onChange={e => setPestForm({...pestForm, pest_type: e.target.value})} className="w-full p-2 border rounded"/>
+              <input placeholder="Severity" onChange={e => setPestForm({...pestForm, severity: e.target.value})} className="w-full p-2 border rounded"/>
+              <textarea placeholder="Description" onChange={e => setPestForm({...pestForm, description: e.target.value})} className="w-full p-2 border rounded"/>
+              <button className="bg-green-600 text-white p-2 rounded w-full">Report</button>
+            </form>
+          )}
+
+        </div>
+      </div>
     </NavLayout>
   );
 }
