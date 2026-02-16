@@ -16,6 +16,11 @@ import ReportComplaint from "./pages/ReportComplaint";
 import MyFunds from "./pages/MyFunds";
 import ProfilePage from "./pages/ProfilePage";
 import ProfileCompletion from "./pages/ProfileCompletion";
+import FieldsPage from "./pages/FieldsPage";
+import HarvestsPage from "./pages/HarvestsPage";
+import PestsPage from "./pages/PestsPage";
+import WeatherPage from "./pages/WeatherPage";
+
 
 /* ================= ADMIN PAGES ================= */
 import AdminDashboard from "./pages/AdminDashboard";
@@ -107,6 +112,13 @@ function App() {
           <Route path="/finance/manage-funds" element={<ManageFundsPage />} />
           
         </Route>
+        {/* ================= minicardsROUTES ================= */}
+        <Route path="/farmer/fields" element={<FieldsPage />} />
+        <Route path="/farmer/harvests" element={<HarvestsPage />} />
+        <Route path="/farmer/pests" element={<PestsPage />} />
+        <Route path="/farmer/weather" element={<WeatherPage />} />
+        
+
         
         {/* ================= DONOR ROUTES ================= */}
         <Route element={<DonorNavLayout user={donorUser} />}>
