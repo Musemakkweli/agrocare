@@ -8,8 +8,11 @@ import {
   faDownload,
   faTimes,
   faPlus,
-  
-  faPhone
+  faPhone,
+  faEllipsisV,
+  faPen,
+  faTrash,
+  faEye,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function SupportPage({ user }) {
@@ -19,8 +22,10 @@ export default function SupportPage({ user }) {
   ]);
 
   const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [newRequest, setNewRequest] = useState({ title: "", amount: "", message: "", name: "", contact: "" });
   const [showModal, setShowModal] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null); // for dropdown
 
   const handleDownload = (r) => {
     const csvContent = `Title,Donor,Amount,Date,Message,Name,Contact\n"${r.title}","${r.donor}",${r.amount},"${r.createdAt}","${r.message}","${r.name}","${r.contact}"`;
@@ -37,18 +42,23 @@ export default function SupportPage({ user }) {
   const submitRequest = () => {
     if (!newRequest.title || !newRequest.amount || !newRequest.name || !newRequest.contact) return;
 
-    const newEntry = {
-      id: requests.length + 1,
-      donor: user?.name || "Anonymous",
-      amount: newRequest.amount,
-      createdAt: new Date().toISOString().split("T")[0],
-      title: newRequest.title,
-      message: newRequest.message,
-      name: newRequest.name,
-      contact: newRequest.contact
-    };
+    if (editing) {
+      setRequests(requests.map(r => r.id === editing.id ? { ...editing, ...newRequest } : r));
+      setEditing(null);
+    } else {
+      const newEntry = {
+        id: requests.length + 1,
+        donor: user?.name || "Anonymous",
+        amount: newRequest.amount,
+        createdAt: new Date().toISOString().split("T")[0],
+        title: newRequest.title,
+        message: newRequest.message,
+        name: newRequest.name,
+        contact: newRequest.contact
+      };
+      setRequests([newEntry, ...requests]);
+    }
 
-    setRequests([newEntry, ...requests]);
     setNewRequest({ title: "", amount: "", message: "", name: "", contact: "" });
     setShowModal(false);
   };
@@ -56,15 +66,27 @@ export default function SupportPage({ user }) {
   const cancelRequest = () => {
     setNewRequest({ title: "", amount: "", message: "", name: "", contact: "" });
     setShowModal(false);
+    setEditing(null);
+  };
+
+  const handleEdit = (r) => {
+    setEditing(r);
+    setNewRequest({ title: r.title, amount: r.amount, message: r.message, name: r.name, contact: r.contact });
+    setShowModal(true);
+    setOpenMenuId(null); // close menu
+  };
+
+  const handleDelete = (r) => {
+    if (window.confirm("Are you sure you want to delete this request?")) {
+      setRequests(requests.filter(req => req.id !== r.id));
+      setOpenMenuId(null); // close menu
+    }
   };
 
   return (
     <NavLayout user={user}>
       <div className="space-y-6">
-        {/* PAGE TITLE */}
-        <h1 className="text-2xl font-bold text-green-800 dark:text-green-400 mb-4">
-          Support
-        </h1>
+        <h1 className="text-2xl font-bold text-green-800 dark:text-green-400 mb-4">Support</h1>
 
         {/* OPEN MODAL BUTTON */}
         <button
@@ -79,12 +101,10 @@ export default function SupportPage({ user }) {
           {requests.map((r) => (
             <div
               key={r.id}
-              className="bg-white dark:bg-slate-800 rounded-2xl shadow p-5 flex flex-col justify-between transition hover:shadow-lg cursor-pointer"
-              onClick={() => setSelected(r)}
+              className="bg-green-50 dark:bg-green-900 rounded-2xl shadow p-5 flex flex-col justify-between transition hover:shadow-lg hover:bg-green-100 dark:hover:bg-green-800 cursor-pointer relative"
+              onClick={() => setSelected(r)} // click card to view
             >
-              <h2 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-2">
-                {r.title}
-              </h2>
+              <h2 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">{r.title}</h2>
               <p className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2">
                 <FontAwesomeIcon icon={faUser} /> {r.donor}
               </p>
@@ -94,6 +114,39 @@ export default function SupportPage({ user }) {
               <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1">
                 <FontAwesomeIcon icon={faCalendarAlt} /> {r.createdAt}
               </p>
+
+              {/* Three dots menu */}
+              <div className="absolute top-3 right-3">
+                <button
+                  className="p-1 text-gray-500 hover:text-green-700 dark:hover:text-green-300"
+                  onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === r.id ? null : r.id); }}
+                >
+                  <FontAwesomeIcon icon={faEllipsisV} />
+                </button>
+
+                {openMenuId === r.id && (
+                  <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 shadow-lg rounded-lg flex flex-col z-50">
+                    <button
+                      onClick={() => setSelected(r)}
+                      className="px-4 py-2 text-sm flex items-center gap-2 hover:bg-green-100 dark:hover:bg-green-700 text-green-700 dark:text-green-300"
+                    >
+                      <FontAwesomeIcon icon={faEye} /> View
+                    </button>
+                    <button
+                      onClick={() => handleEdit(r)}
+                      className="px-4 py-2 text-sm flex items-center gap-2 hover:bg-green-100 dark:hover:bg-green-700 text-green-700 dark:text-green-300"
+                    >
+                      <FontAwesomeIcon icon={faPen} /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(r)}
+                      className="px-4 py-2 text-sm flex items-center gap-2 hover:bg-red-100 dark:hover:bg-red-700 text-red-600 dark:text-red-400"
+                    >
+                      <FontAwesomeIcon icon={faTrash} /> Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -104,7 +157,7 @@ export default function SupportPage({ user }) {
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-green-700 dark:text-green-400">
-                  Request Funding / Support
+                  {editing ? "Edit Request" : "Request Funding / Support"}
                 </h2>
                 <button onClick={cancelRequest}>
                   <FontAwesomeIcon icon={faTimes} className="text-gray-600 dark:text-gray-300 text-lg" />
@@ -112,54 +165,17 @@ export default function SupportPage({ user }) {
               </div>
 
               <div className="flex flex-col gap-3">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white"
-                  value={newRequest.name}
-                  onChange={e => setNewRequest({ ...newRequest, name: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Phone or Email"
-                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white"
-                  value={newRequest.contact}
-                  onChange={e => setNewRequest({ ...newRequest, contact: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Title of request"
-                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white"
-                  value={newRequest.title}
-                  onChange={e => setNewRequest({ ...newRequest, title: e.target.value })}
-                />
-                <input
-                  type="number"
-                  placeholder="Amount needed ($)"
-                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white"
-                  value={newRequest.amount}
-                  onChange={e => setNewRequest({ ...newRequest, amount: e.target.value })}
-                />
-                <textarea
-                  placeholder="Description / message"
-                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white"
-                  value={newRequest.message}
-                  onChange={e => setNewRequest({ ...newRequest, message: e.target.value })}
-                />
+                <input type="text" placeholder="Full Name" className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" value={newRequest.name} onChange={e => setNewRequest({ ...newRequest, name: e.target.value })} />
+                <input type="text" placeholder="Phone or Email" className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" value={newRequest.contact} onChange={e => setNewRequest({ ...newRequest, contact: e.target.value })} />
+                <input type="text" placeholder="Title of request" className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" value={newRequest.title} onChange={e => setNewRequest({ ...newRequest, title: e.target.value })} />
+                <input type="number" placeholder="Amount needed ($)" className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" value={newRequest.amount} onChange={e => setNewRequest({ ...newRequest, amount: e.target.value })} />
+                <textarea placeholder="Description / message" className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white" value={newRequest.message} onChange={e => setNewRequest({ ...newRequest, message: e.target.value })} />
 
                 <div className="flex gap-4">
-                  <button
-                    onClick={submitRequest}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                  >
-                    <FontAwesomeIcon icon={faPlus} /> Submit
+                  <button onClick={submitRequest} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    <FontAwesomeIcon icon={faPlus} /> {editing ? "Update" : "Submit"}
                   </button>
-                  <button
-                    onClick={cancelRequest}
-                    className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={cancelRequest} className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition">Cancel</button>
                 </div>
               </div>
             </div>
@@ -184,16 +200,12 @@ export default function SupportPage({ user }) {
               <p className="mb-4 text-gray-700 dark:text-gray-200"><FontAwesomeIcon icon={faPhone} /> Contact: {selected.contact}</p>
               <p className="mb-4 text-gray-700 dark:text-gray-200">Message: {selected.message}</p>
 
-              <button
-                onClick={() => handleDownload(selected)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-              >
+              <button onClick={() => handleDownload(selected)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
                 <FontAwesomeIcon icon={faDownload} /> Download
               </button>
             </div>
           </div>
         )}
-
       </div>
     </NavLayout>
   );
