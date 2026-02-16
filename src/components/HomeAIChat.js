@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; 
 import { useNavigate } from "react-router-dom";
 import NavLayout from "../pages/NavLayout"; // ✅ correct relative path
-
+import axios from "axios";
 
 export default function HomeAIChat({ user }) {
   const navigate = useNavigate();
@@ -11,9 +11,12 @@ export default function HomeAIChat({ user }) {
   const [input, setInput] = useState("");
   const [questionCount, setQuestionCount] = useState(0);
   const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const API_URL = "https://menya-leaf-ai-api.onrender.com/predict"; // replace with actual endpoint
 
   /* ---------------- SEND MESSAGE ---------------- */
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() && !imagePreview) return;
 
     if (questionCount >= MAX_FREE_QUESTIONS) {
@@ -21,15 +24,42 @@ export default function HomeAIChat({ user }) {
       return;
     }
 
-    setMessages(prev => [
-      ...prev,
-      { sender: "user", text: input, image: imagePreview },
-      { sender: "ai", text: "🌱 Thanks! I’ll analyze your question and image." }
-    ]);
+    // Show user message immediately
+    const userMessage = { sender: "user", text: input, image: imagePreview };
+    setMessages(prev => [...prev, userMessage]);
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("question", input);
+      if (imagePreview) {
+        const file = await fetch(imagePreview).then(r => r.blob());
+        formData.append("image", file, "upload.jpg");
+      }
+
+      const res = await axios.post(API_URL, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Append AI response
+      setMessages(prev => [
+        ...prev,
+        userMessage,
+        { sender: "ai", text: res.data.answer || "🌱 Sorry, no response received." },
+      ]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [
+        ...prev,
+        { sender: "ai", text: "🌱 Sorry, an error occurred while processing your request." },
+      ]);
+    }
 
     setQuestionCount(prev => prev + 1);
     setInput("");
     setImagePreview(null);
+    setLoading(false);
   };
 
   /* ---------------- IMAGE UPLOAD ---------------- */
@@ -70,7 +100,7 @@ export default function HomeAIChat({ user }) {
                   className={`inline-block px-3 py-2 rounded-lg text-sm ${
                     msg.sender === "user"
                       ? "bg-green-600 text-white"
-                      : "bg-gray-300 dark:bg-slate-600 dark:text-white"
+                      : "bg-green-100 dark:bg-slate-600 dark:text-white"
                   }`}
                 >
                   {msg.text}
@@ -85,6 +115,10 @@ export default function HomeAIChat({ user }) {
                 )}
               </div>
             ))}
+
+            {loading && (
+              <p className="text-sm text-gray-500 dark:text-gray-300">🌱 AI is thinking...</p>
+            )}
           </div>
 
           {/* IMAGE PREVIEW */}
@@ -110,7 +144,7 @@ export default function HomeAIChat({ user }) {
               <p className="text-red-600 text-sm mb-2">Free limit reached</p>
               <button
                 onClick={() => navigate("/login")}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Login to continue
               </button>
@@ -126,7 +160,7 @@ export default function HomeAIChat({ user }) {
                 />
                 <button
                   onClick={handleSend}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
                   Send
                 </button>
