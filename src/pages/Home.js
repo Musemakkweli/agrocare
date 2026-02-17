@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react"; // added useRef
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLeaf,
@@ -8,16 +8,18 @@ import {
   faGlobe,
   faHome,
   faTimes,
-  faPlus
+  faPlus,
+  faImage,
+  faSpinner
 } from "@fortawesome/free-solid-svg-icons";
-
 import { useNavigate } from "react-router-dom";
+import { sendMessageToAI } from "../services/aiService";
 
 export default function Home() {
   const navigate = useNavigate();
 
-  // ====== ADDED REF FOR FILE UPLOAD ======
   const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light"
@@ -27,19 +29,50 @@ export default function Home() {
   /* ================= AI CHAT STATE ================= */
   const [openAI, setOpenAI] = useState(false);
   const [messages, setMessages] = useState([
-    { from: "ai", text: "👋 Hi, I’m AgroCare AI. Ask me anything about your crops." }
+    { from: "ai", text: "👋 Hi, I'm AgroCare AI. Ask me anything about your crops, or upload a photo of a plant for disease diagnosis." }
   ]);
   const [input, setInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
-  // ====== ADDED FILE UPLOAD HANDLER ======
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Check if it's an image
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    setSelectedImage(file);
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    
     setMessages(prev => [
       ...prev,
-      { from: "user", text: `📎 Uploaded: ${file.name}` }
+      { from: "user", text: `📎 Image ready for analysis: ${file.name}` }
     ]);
+  };
+
+  const removeImage = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   const alerts = [
@@ -63,15 +96,67 @@ export default function Home() {
 
   const goHome = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    setMessages([...messages, { from: "user", text: input }]);
+  const sendMessage = async () => {
+    if ((!input.trim() && !selectedImage) || aiLoading) return;
+
+    const userMessageText = input.trim() || (selectedImage ? "Analyzing plant image..." : "");
+    
+    // Add user message to chat
+    setMessages(prev => [...prev, { from: "user", text: userMessageText }]);
+    
+    // Clear input and show loading
     setInput("");
+    setAiLoading(true);
+
+    try {
+      // Show typing indicator
+      setMessages(prev => [...prev, { from: "ai", text: "🌱 Thinking...", isLoading: true }]);
+
+      // Send to AI service
+      const aiResponse = await sendMessageToAI(userMessageText, selectedImage);
+      
+      // Remove loading message and add actual response
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isLoading);
+        return [...filtered, { from: "ai", text: aiResponse }];
+      });
+
+      // Clear image after successful analysis
+      if (selectedImage) {
+        removeImage();
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+
+    } catch (error) {
+      console.error("Error sending message:", error);
+      
+      // Remove loading message and show error
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isLoading);
+        return [...filtered, { 
+          from: "ai", 
+          text: "🌱 Sorry, I encountered an error. Please try again later." 
+        }];
+      });
+    } finally {
+      setAiLoading(false);
+    }
   };
+
+  // Clean up object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   return (
     <div className="min-h-screen bg-gray-200 dark:bg-slate-900 transition-all">
-
 
       {/* ================= HEADER ================= */}
       <header className="bg-green-700 dark:bg-green-900 fixed top-0 w-full z-50 shadow-sm">
@@ -181,7 +266,8 @@ export default function Home() {
             <div
               key={i}
               className="bg-gray-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-6
-                         hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
+                         hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition cursor-pointer"
+              onClick={() => i === 1 && setOpenAI(true)} // Open AI chat when clicking AI Diagnosis
             >
               <FontAwesomeIcon icon={item.icon} className="text-green-600 text-3xl mb-3" />
               <h3 className="font-semibold text-green-800 dark:text-green-300 mb-1">{item.title}</h3>
@@ -250,67 +336,110 @@ export default function Home() {
         {!openAI && (
           <button
             onClick={() => setOpenAI(true)}
-            className="w-12 h-12 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center text-white shadow-lg"
+            className="w-14 h-14 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform"
           >
-            <FontAwesomeIcon icon={faRobot} />
+            <FontAwesomeIcon icon={faRobot} className="text-2xl" />
           </button>
         )}
 
         {openAI && (
-          <div className="w-80 h-96 bg-white dark:bg-slate-800 rounded-xl shadow-xl flex flex-col border">
-            <div className="bg-green-600 text-white px-4 py-2 flex justify-between items-center rounded-t-xl">
-              <span className="font-semibold text-sm">AgroCare AI</span>
+          <div className="w-96 h-[32rem] bg-white dark:bg-slate-800 rounded-xl shadow-xl flex flex-col border dark:border-slate-700">
+            {/* Header */}
+            <div className="bg-green-600 text-white px-4 py-3 flex justify-between items-center rounded-t-xl">
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faRobot} />
+                <span className="font-semibold">AgroCare AI Assistant</span>
+              </div>
               <FontAwesomeIcon
                 icon={faTimes}
-                className="cursor-pointer"
+                className="cursor-pointer hover:text-green-200"
                 onClick={() => setOpenAI(false)}
               />
             </div>
 
-            <div className="flex-1 p-3 overflow-y-auto space-y-2 text-sm">
+            {/* Messages */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3 text-sm bg-gray-50 dark:bg-slate-900">
               {messages.map((m, i) => (
                 <div
                   key={i}
-                  className={`px-3 py-2 rounded-lg max-w-[80%] ${
-                    m.from === "ai"
-                      ? "bg-green-100 text-green-900"
-                      : "bg-blue-100 text-blue-900 ml-auto"
-                  }`}
+                  className={`flex ${m.from === "ai" ? "justify-start" : "justify-end"}`}
                 >
-                  {m.text}
+                  <div
+                    className={`px-3 py-2 rounded-lg max-w-[80%] ${
+                      m.from === "ai"
+                        ? "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-100"
+                        : "bg-blue-500 text-white ml-auto"
+                    } ${m.isLoading ? "animate-pulse" : ""}`}
+                  >
+                    {m.text}
+                  </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* INPUT + UPLOAD */}
-            <div className="p-2 border-t flex gap-2 items-center">
-              <button
-                onClick={() => fileInputRef.current.click()}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300"
-              >
-                <FontAwesomeIcon icon={faPlus} />
-              </button>
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="px-3 py-2 border-t dark:border-slate-700 relative">
+                <div className="relative inline-block">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="h-16 w-16 object-cover rounded-lg border"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
+            {/* Input Area */}
+            <div className="p-3 border-t dark:border-slate-700">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => fileInputRef.current.click()}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full ${
+                    selectedImage ? 'bg-green-500 text-white' : 'bg-gray-200 hover:bg-gray-300 dark:bg-slate-700'
+                  }`}
+                  disabled={aiLoading}
+                >
+                  <FontAwesomeIcon icon={faImage} />
+                </button>
 
-              <input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Ask about your crop..."
-                className="flex-1 px-3 py-2 text-sm rounded border focus:outline-none focus:ring-1 focus:ring-green-500"
-              />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={aiLoading}
+                />
 
-              <button
-                onClick={sendMessage}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 rounded text-sm"
-              >
-                Send
-              </button>
+                <input
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyPress={e => e.key === "Enter" && sendMessage()}
+                  placeholder="Ask about your crop..."
+                  className="flex-1 px-3 py-2 text-sm rounded border focus:outline-none focus:ring-1 focus:ring-green-500 dark:bg-slate-700 dark:border-slate-600"
+                  disabled={aiLoading}
+                />
+
+                <button
+                  onClick={sendMessage}
+                  disabled={(!input.trim() && !selectedImage) || aiLoading}
+                  className={`px-4 rounded text-sm font-medium ${
+                    (!input.trim() && !selectedImage) || aiLoading
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
+                >
+                  {aiLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Send"}
+                </button>
+              </div>
             </div>
           </div>
         )}
