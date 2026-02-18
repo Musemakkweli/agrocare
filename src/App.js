@@ -20,6 +20,7 @@ import FieldsPage from "./pages/FieldsPage";
 import HarvestsPage from "./pages/HarvestsPage";
 import PestsPage from "./pages/PestsPage";
 import WeatherPage from "./pages/WeatherPage";
+import PublicComplaint from "./pages/PublicComplaint";
 
 
 /* ================= ADMIN PAGES ================= */
@@ -75,6 +76,7 @@ function App() {
         <Route path="/my-funds" element={<MyFunds />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/completion" element={<ProfileCompletion />} />
+        <Route path="/public-complaint" element={<PublicComplaint />} />       
         
 
         {/* ================= ADMIN ROUTES ================= */}

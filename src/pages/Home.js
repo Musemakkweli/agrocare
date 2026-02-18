@@ -8,9 +8,9 @@ import {
   faGlobe,
   faHome,
   faTimes,
-  faPlus,
   faImage,
-  faSpinner
+  faSpinner,
+  faBug // Add this for the complaint icon
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import { sendMessageToAI } from "../services/aiService";
@@ -155,6 +155,23 @@ export default function Home() {
     };
   }, [imagePreview]);
 
+  // Function to handle complaint without login
+  const handleQuickComplaint = () => {
+    // You can either:
+    // Option 1: Navigate to a public complaint form
+    navigate("/public-complaint");
+    
+    // Option 2: Or open a modal/direct form (you can implement this later)
+    // setShowComplaintModal(true);
+    
+    // Option 3: Or open the AI chat with a complaint prompt
+    // setOpenAI(true);
+    // setMessages(prev => [...prev, { 
+    //   from: "ai", 
+    //   text: "Please describe your crop issue below. You can also upload images." 
+    // }]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-200 dark:bg-slate-900 transition-all">
 
@@ -205,34 +222,41 @@ export default function Home() {
       </header>
 
       <div className="h-16"></div>
+{/* ================= HERO ================= */}
+<section className="max-w-7xl mx-auto px-8 py-20 bg-gray-100 dark:bg-slate-800 rounded-2xl shadow mt-8">
+  <h1 className="text-5xl font-bold text-green-800 dark:text-green-400 mb-6">
+    Welcome to AgroCare
+  </h1>
+  <p className="text-gray-700 dark:text-gray-300 text-lg max-w-3xl mb-10">
+    Empowering farmers to report crop issues, access expert agronomists, and receive
+    support from leaders and donors.
+  </p>
 
-      {/* ================= HERO ================= */}
-      <section className="max-w-7xl mx-auto px-8 py-20 bg-gray-100 dark:bg-slate-800 rounded-2xl shadow mt-8">
-        <h1 className="text-5xl font-bold text-green-800 dark:text-green-400 mb-6">
-          Welcome to AgroCare
-        </h1>
-        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-3xl mb-10">
-          Empowering farmers to report crop issues, access expert agronomists, and receive
-          support from leaders and donors.
-        </p>
+  <div className="flex flex-wrap gap-5">
+    <button
+      onClick={() => navigate("/login")}
+      className="bg-green-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-green-700 transition"
+    >
+      Report Crop Issue
+    </button>
 
-        <div className="flex gap-5">
-          <button
-            onClick={() => navigate("/login")}
-            className="bg-green-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-green-700 transition"
-          >
-            Report Crop Issue
-          </button>
+    <button
+      onClick={() => navigate("/programs")}
+      className="bg-blue-100 text-blue-700 px-6 py-3 rounded-md font-semibold hover:bg-blue-200 transition"
+    >
+      Explore Programs
+    </button>
 
-          <button
-            onClick={() => navigate("/programs")}
-            className="bg-blue-100 text-blue-700 px-6 py-3 rounded-md font-semibold hover:bg-blue-200 transition"
-          >
-            Explore Programs
-          </button>
-        </div>
-      </section>
-
+    {/* ===== REPORT ISSUE BUTTON (Nude Green) ===== */}
+    <button
+  onClick={handleQuickComplaint}
+  className="bg-green-100 text-green-800 px-6 py-3 rounded-md font-semibold hover:bg-green-200 transition flex items-center gap-2 border border-green-300"
+>
+  <FontAwesomeIcon icon={faBug} className="text-green-600" />
+  Report Issue
+</button>
+  </div>
+</section>
       {/* ================= ALERTS ================= */}
       <section className="max-w-5xl mx-auto px-6 mt-12">
         <h2 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-3">
@@ -267,7 +291,13 @@ export default function Home() {
               key={i}
               className="bg-gray-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-6
                          hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition cursor-pointer"
-              onClick={() => i === 1 && setOpenAI(true)} // Open AI chat when clicking AI Diagnosis
+              onClick={() => {
+                if (i === 0) {
+                  handleQuickComplaint(); // Make first card also open complaint
+                } else if (i === 1) {
+                  setOpenAI(true);
+                }
+              }}
             >
               <FontAwesomeIcon icon={item.icon} className="text-green-600 text-3xl mb-3" />
               <h3 className="font-semibold text-green-800 dark:text-green-300 mb-1">{item.title}</h3>

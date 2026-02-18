@@ -1,5 +1,5 @@
 // src/pages/Login.js
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLeaf, faHome } from "@fortawesome/free-solid-svg-icons";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,10 +14,10 @@ export default function Login() {
   const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // <-- toggle password
+  const [showPassword, setShowPassword] = useState(false);
 
   /* ==============================
-     Redirect Logic
+     Redirect Logic - WITH ADMIN
   ============================== */
   const redirectUser = useCallback(
     (user) => {
@@ -48,6 +48,9 @@ export default function Login() {
         case "finance":
           navigate("/finance");
           break;
+        case "admin":
+          navigate("/admin/dashboard");  // ✅ Admin redirect
+          break;
         default:
           navigate("/");
       }
@@ -56,7 +59,7 @@ export default function Login() {
   );
 
   /* ==============================
-     Fetch latest profile after login
+     Fetch latest profile after login - WITH ADMIN
   ============================== */
   const fetchLatestUser = async (user) => {
     try {
@@ -77,6 +80,9 @@ export default function Login() {
         case "finance":
           endpoint = `${BASE_URL}/profile/finance/${user.id}`;
           break;
+        case "admin":
+          endpoint = `${BASE_URL}/profile/admin/${user.id}`;  // ✅ Admin endpoint
+          break;
         default:
           return user;
       }
@@ -85,26 +91,26 @@ export default function Login() {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      // Merge updated data with login response
       return { ...user, ...response.data };
     } catch (err) {
       console.error("Failed to fetch latest user profile:", err);
-      return user; // fallback to login user
+      return user;
     }
   };
 
   /* ==============================
      Auto redirect if already logged in
+     ⚠️ COMMENTED OUT FOR TESTING ⚠️
   ============================== */
-  useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem("user"));
-    if (savedUser) {
-      fetchLatestUser(savedUser).then((latestUser) => {
-        localStorage.setItem("user", JSON.stringify(latestUser));
-        redirectUser(latestUser);
-      });
-    }
-  }, [redirectUser]);
+  // useEffect(() => {
+  //   const savedUser = JSON.parse(localStorage.getItem("user"));
+  //   if (savedUser) {
+  //     fetchLatestUser(savedUser).then((latestUser) => {
+  //       localStorage.setItem("user", JSON.stringify(latestUser));
+  //       redirectUser(latestUser);
+  //     });
+  //   }
+  // }, [redirectUser]);
 
   /* ==============================
      Theme toggle
@@ -138,7 +144,6 @@ export default function Login() {
 
       localStorage.setItem("token", access_token);
 
-      // Fetch latest profile from backend
       const latestUser = await fetchLatestUser(user);
       localStorage.setItem("user", JSON.stringify(latestUser));
 

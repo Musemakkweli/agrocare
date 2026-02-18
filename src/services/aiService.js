@@ -1,72 +1,87 @@
-import OpenAI from 'openai';
+// src/services/aiService.js
+import axios from "axios";
+import BASE_URL from "../config";
 
-// Initialize OpenAI with your key
-const openai = new OpenAI({
-  apiKey: "sk-ed55d5c6207c421f87a3561a07e69470",
-  dangerouslyAllowBrowser: true // Note: In production, you should proxy through your backend
-});
-
+/**
+ * Send a message to the AI chat endpoint
+ * Handles slow AI responses safely
+ */
 export const sendMessageToAI = async (message, imageFile = null) => {
+  let finalMessage = message?.trim();
+
+  if (imageFile) {
+    finalMessage =
+      finalMessage ||
+      "I uploaded a plant image. Please analyze possible disease, pests, or nutrient deficiency.";
+  }
+
   try {
-    let content = message;
-    
-    // If there's an image, we need to handle it differently
-    if (imageFile) {
-      // Convert image to base64
-      const base64Image = await fileToBase64(imageFile);
-      
-      // For vision capabilities, you'd use GPT-4 Vision
-      const response = await openai.chat.completions.create({
-        model: "gpt-4-vision-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: message || "Analyze this plant image for diseases or issues:" },
-              {
-                type: "image_url",
-                image_url: {
-                  url: base64Image,
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 500,
-      });
-      
-      return response.choices[0].message.content;
-    } else {
-      // Text-only message
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "You are AgroCare AI, a helpful assistant for farmers. You provide advice on crop diseases, pests, farming techniques, and agricultural best practices. Keep responses concise and practical."
-          },
-          {
-            role: "user",
-            content: message
-          }
-        ],
-        max_tokens: 300,
-      });
-      
-      return response.choices[0].message.content;
-    }
+    const response = await axios.post(
+      `${BASE_URL}/ai-chat`,
+      { message: finalMessage },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 120000, // ⬅️ 2 minutes (important)
+      }
+    );
+
+    return response.data?.reply || "🌱 AI responded without text.";
+
   } catch (error) {
     console.error("AI Service Error:", error);
-    throw error;
+
+    // ⏳ Timeout handling
+    if (error.code === "ECONNABORTED") {
+      return "⏳ The AI is taking longer than usual. Please try again in a moment.";
+    }
+
+    // 🌐 Server errors
+    if (error.response) {
+      const status = error.response.status;
+
+      if (status === 502) {
+        return "⚠️ AI service is warming up. Try again shortly.";
+      }
+
+      if (status === 400) {
+        return "❌ Invalid request.";
+      }
+
+      return `🚨 Server error (${status}).`;
+    }
+
+    // 🌍 Network issues
+    return "🌐 Network error. Please check your connection.";
   }
 };
 
-// Helper function to convert file to base64
-const fileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
+/**
+ * Send message using a specific model
+ */
+export const sendMessageWithModel = async (message, model) => {
+  const response = await axios.post(
+    `${BASE_URL}/ai-chat?model=${encodeURIComponent(model)}`,
+    { message },
+    { timeout: 120000 }
+  );
+
+  return response.data?.reply || response.data;
+};
+
+/**
+ * AI health check
+ */
+export const checkAIServiceHealth = async () => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/ai-chat`,
+      { message: "ping" },
+      { timeout: 8000 }
+    );
+    return response.status === 200;
+  } catch {
+    return false;
+  }
 };
