@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import NavLayout from "./NavLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -17,49 +17,16 @@ import {
   faInfoCircle,
   faFilter,
   faSearch,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
+import BASE_URL from "../config"; // Import your base URL
 
 export default function SupportPage({ user }) {
-  const [requests, setRequests] = useState([
-    { 
-      id: 1, 
-      donor: "John Doe", 
-      amount: 50, 
-      createdAt: "2026-01-28", 
-      title: "Support for Crop Tools", 
-      message: "Funds for buying crop tools and seeds. Need hoes, machetes, and watering cans for the upcoming planting season.",
-      name: "John Doe", 
-      contact: "john@example.com",
-      status: "pending",
-      category: "tools"
-    },
-    { 
-      id: 2, 
-      donor: "Jane Smith", 
-      amount: 100, 
-      createdAt: "2026-01-27", 
-      title: "Fertilizer Donation", 
-      message: "Providing organic fertilizer for maize fields. Need enough for 2 acres of maize plantation.",
-      name: "Jane Smith", 
-      contact: "jane@example.com",
-      status: "approved",
-      category: "fertilizer"
-    },
-    { 
-      id: 3, 
-      donor: "Farmers Cooperative", 
-      amount: 75, 
-      createdAt: "2026-01-26", 
-      title: "Irrigation System Support", 
-      message: "Help with installing drip irrigation for vegetable garden during dry season.",
-      name: "Peter Mwangi", 
-      contact: "peter@farm.coop",
-      status: "pending",
-      category: "irrigation"
-    },
-  ]);
-
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
   const [newRequest, setNewRequest] = useState({ 
@@ -69,16 +36,41 @@ export default function SupportPage({ user }) {
     name: user?.name || "", 
     contact: user?.email || "",
     category: "tools",
-    status: "pending"
   });
   const [showModal, setShowModal] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch requests on component mount
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const loadRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${BASE_URL}/api/support`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setRequests(data.data);
+        setError(null);
+      } else {
+        setError('Failed to load support requests');
+      }
+    } catch (err) {
+      setError('Failed to load support requests');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Categories for filtering
   const categories = [
-    { value: "all", label: "All Categories" },
+    { value: "all", label: "All Categories", icon: "📋" },
     { value: "tools", label: "Tools & Equipment", icon: "🔧" },
     { value: "fertilizer", label: "Fertilizer", icon: "🌱" },
     { value: "seeds", label: "Seeds", icon: "🌿" },
@@ -89,9 +81,9 @@ export default function SupportPage({ user }) {
   // Filter requests based on search and category
   const filteredRequests = requests.filter(r => {
     const matchesSearch = 
-      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.donor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.message.toLowerCase().includes(searchTerm.toLowerCase());
+      r.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.donor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.message?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = filterCategory === "all" || r.category === filterCategory;
     
@@ -99,7 +91,7 @@ export default function SupportPage({ user }) {
   });
 
   const handleDownload = (r) => {
-    const csvContent = `Title,Donor,Amount,Date,Message,Name,Contact,Category,Status\n"${r.title}","${r.donor}",${r.amount},"${r.createdAt}","${r.message}","${r.name}","${r.contact}","${r.category}","${r.status}"`;
+    const csvContent = `Title,Donor,Amount,Date,Message,Name,Contact,Category,Status\n"${r.title}","${r.donor}",${r.amount},"${new Date(r.createdAt).toLocaleDateString()}","${r.message}","${r.name}","${r.contact}","${r.category}","${r.status}"`;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -110,38 +102,76 @@ export default function SupportPage({ user }) {
     document.body.removeChild(link);
   };
 
-  const submitRequest = () => {
-    if (!newRequest.title || !newRequest.amount || !newRequest.name || !newRequest.contact) return;
+  const submitRequest = async () => {
+    if (!newRequest.title || !newRequest.amount || !newRequest.name || !newRequest.contact) {
+      alert("Please fill in all required fields");
+      return;
+    }
 
-    if (editing) {
-      setRequests(requests.map(r => r.id === editing.id ? { ...editing, ...newRequest } : r));
-      setEditing(null);
-    } else {
-      const newEntry = {
-        id: requests.length + 1,
-        donor: user?.name || "Anonymous",
-        amount: parseFloat(newRequest.amount),
-        createdAt: new Date().toISOString().split("T")[0],
+    try {
+      setSubmitting(true);
+      
+      const requestData = {
         title: newRequest.title,
+        amount: parseFloat(newRequest.amount),
         message: newRequest.message,
         name: newRequest.name,
         contact: newRequest.contact,
         category: newRequest.category,
-        status: "pending"
+        donor: user?.name || newRequest.name, // Use user name if available
       };
-      setRequests([newEntry, ...requests]);
-    }
 
-    setNewRequest({ 
-      title: "", 
-      amount: "", 
-      message: "", 
-      name: user?.name || "", 
-      contact: user?.email || "",
-      category: "tools",
-      status: "pending"
-    });
-    setShowModal(false);
+      let response;
+      
+      if (editing) {
+        // Update existing request
+        response = await fetch(`${BASE_URL}/api/support/${editing.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+      } else {
+        // Create new request
+        response = await fetch(`${BASE_URL}/api/support`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        if (editing) {
+          setRequests(requests.map(r => r.id === editing.id ? data.data : r));
+        } else {
+          setRequests([data, ...requests]);
+        }
+        
+        // Reset form
+        setNewRequest({ 
+          title: "", 
+          amount: "", 
+          message: "", 
+          name: user?.name || "", 
+          contact: user?.email || "",
+          category: "tools",
+        });
+        setShowModal(false);
+        setEditing(null);
+      } else {
+        alert(`Failed to ${editing ? 'update' : 'create'} request`);
+      }
+      
+    } catch (err) {
+      alert(`Failed to ${editing ? 'update' : 'create'} request: ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const cancelRequest = () => {
@@ -152,7 +182,6 @@ export default function SupportPage({ user }) {
       name: user?.name || "", 
       contact: user?.email || "",
       category: "tools",
-      status: "pending"
     });
     setShowModal(false);
     setEditing(null);
@@ -167,16 +196,30 @@ export default function SupportPage({ user }) {
       name: r.name, 
       contact: r.contact,
       category: r.category || "tools",
-      status: r.status
     });
     setShowModal(true);
     setOpenMenuId(null);
   };
 
-  const handleDelete = (r) => {
+  const handleDelete = async (r) => {
     if (window.confirm("Are you sure you want to delete this support request?")) {
-      setRequests(requests.filter(req => req.id !== r.id));
-      setOpenMenuId(null);
+      try {
+        const response = await fetch(`${BASE_URL}/api/support/${r.id}`, {
+          method: 'DELETE',
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setRequests(requests.filter(req => req.id !== r.id));
+          if (selected?.id === r.id) setSelected(null);
+        } else {
+          alert('Failed to delete request');
+        }
+      } catch (err) {
+        alert(`Failed to delete request: ${err.message}`);
+      } finally {
+        setOpenMenuId(null);
+      }
     }
   };
 
@@ -186,6 +229,8 @@ export default function SupportPage({ user }) {
         return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
       case "pending":
         return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300";
+      case "rejected":
+        return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     }
@@ -200,6 +245,44 @@ export default function SupportPage({ user }) {
       default: return "📦";
     }
   };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <NavLayout user={user}>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <FontAwesomeIcon icon={faSpinner} className="text-4xl text-green-600 animate-spin mb-4" />
+            <p className="text-gray-600 dark:text-gray-300">Loading support requests...</p>
+          </div>
+        </div>
+      </NavLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <NavLayout user={user}>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <div className="bg-red-100 text-red-700 p-6 rounded-xl">
+              <p className="font-semibold">{error}</p>
+              <button 
+                onClick={loadRequests}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </NavLayout>
+    );
+  }
 
   return (
     <NavLayout user={user}>
@@ -367,7 +450,7 @@ export default function SupportPage({ user }) {
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                       <FontAwesomeIcon icon={faCalendarAlt} className="text-green-500 w-4" />
-                      {new Date(r.createdAt).toLocaleDateString()}
+                      {formatDate(r.createdAt)}
                     </p>
                   </div>
 
@@ -508,14 +591,20 @@ export default function SupportPage({ user }) {
                       <button
                         onClick={cancelRequest}
                         className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium"
+                        disabled={submitting}
                       >
                         Cancel
                       </button>
                       <button
                         onClick={submitRequest}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center justify-center gap-2"
+                        disabled={submitting}
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <FontAwesomeIcon icon={faPlus} />
+                        {submitting ? (
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                        ) : (
+                          <FontAwesomeIcon icon={faPlus} />
+                        )}
                         {editing ? "Update" : "Submit"}
                       </button>
                     </div>
@@ -605,7 +694,7 @@ export default function SupportPage({ user }) {
                         Date
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {new Date(selected.createdAt).toLocaleDateString()}
+                        {formatDate(selected.createdAt)}
                       </p>
                     </div>
                     <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">

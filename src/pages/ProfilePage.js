@@ -676,6 +676,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [tempImage, setTempImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);  
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
@@ -684,6 +685,12 @@ export default function ProfilePage() {
     const loadUser = () => {
       const storedUser = JSON.parse(localStorage.getItem("user"));
       if (storedUser) {
+        // Load saved profile image if it exists
+        const savedImage = localStorage.getItem(`profileImage_${storedUser.id}`);
+        if (savedImage) {
+          storedUser.profileImage = savedImage;
+        }
+        
         // Add mock role-specific data
         const roleData = {
           farmer: {
@@ -722,7 +729,9 @@ export default function ProfilePage() {
         };
 
         const role = storedUser.role || "farmer";
-        setUser(roleData[role] || storedUser);
+        const userData = roleData[role] || storedUser;
+        setUser(userData);
+        setProfileImage(userData.profileImage || null);
       } else {
         // Mock data for demo
         setUser({
@@ -754,7 +763,14 @@ export default function ProfilePage() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setTempImage(URL.createObjectURL(file));
+      const imageUrl = URL.createObjectURL(file);
+      setTempImage(imageUrl);
+      setProfileImage(imageUrl);
+      
+      // Immediately save to localStorage
+      if (user?.id) {
+        localStorage.setItem(`profileImage_${user.id}`, imageUrl);
+      }
     }
   };
 
@@ -764,10 +780,20 @@ export default function ProfilePage() {
     setTimeout(() => {
       try {
         if (tempImage) {
-          setUser({ ...user, profileImage: tempImage });
+          // Save image permanently
+          const updatedUser = { ...user, profileImage: tempImage };
+          setUser(updatedUser);
+          setProfileImage(tempImage);
+          
+          // Save to localStorage with user-specific key
+          if (user.id) {
+            localStorage.setItem(`profileImage_${user.id}`, tempImage);
+          }
+          
           setTempImage(null);
         }
-        // Save to localStorage
+        
+        // Save user data to localStorage
         localStorage.setItem("user", JSON.stringify(user));
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -784,6 +810,8 @@ export default function ProfilePage() {
   const handleCancel = () => {
     setIsEditing(false);
     setTempImage(null);
+    // Revert to saved image
+    setProfileImage(user.profileImage || null);
   };
 
   const getRoleIcon = (role) => {
@@ -912,7 +940,7 @@ export default function ProfilePage() {
                 <div className="relative">
                   <div className="w-28 h-28 rounded-full bg-white dark:bg-gray-700 overflow-hidden ring-4 ring-white/50">
                     <img
-                      src={tempImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.fullname}&background=16a34a&color=fff&size=128`}
+                      src={tempImage || profileImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.fullname}&background=16a34a&color=fff&size=128`}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />

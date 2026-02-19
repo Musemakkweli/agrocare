@@ -4,7 +4,7 @@
 
 // export default BASE_URL;
 // src/config.js
-const BASE_URL = "http://10.216.93.252:8000";
+const BASE_URL = "http://192.168.1.83:8000";
 export default BASE_URL;
 
 
