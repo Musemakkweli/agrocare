@@ -23,6 +23,7 @@ import WeatherPage from "./pages/WeatherPage";
 import PublicComplaint from "./pages/PublicComplaint";
 
 
+
 /* ================= ADMIN PAGES ================= */
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
@@ -30,6 +31,7 @@ import AdminPrograms from "./pages/AdminPrograms";
 import AdminContributions from "./pages/AdminContributions";
 import AdminComplaints from "./pages/AdminComplaints";
 import AdminReports from "./pages/AdminReports";
+import ApproveUsers from "./pages/ApproveUsers";
 
 /* ================= LEADER ================= */
 import LeaderNavLayout from "./pages/LeaderNavLayout";
@@ -83,6 +85,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/programs/reports" element={<AdminReports />} />
+        <Route path="/admin/users/pending" element={<ApproveUsers />} />
         <Route path="/admin/users/farmers" element={<AdminUsers role="farmer" />} />
         <Route path="/admin/users/leaders" element={<AdminUsers role="leader" />} />
         <Route path="/admin/users/agronomists" element={<AdminUsers role="agronomist" />} />

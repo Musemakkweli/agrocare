@@ -11,15 +11,16 @@ import {
   faBell,
   faChevronDown,
   faBars,
-  faChartBar
+  faChartBar,
+  faUserCheck,
+  faUserPlus,
+  faUserTie,
+  faUserGraduate
 } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 
 // =====================================================
-// UPDATED ADMIN LAYOUT (Frontend only)
-// Role = SYSTEM ADMIN / SUPERVISOR
-// NOT operational manager
-// Leader now handles programs + complaints
+// UPDATED ADMIN LAYOUT with Approve Users Menu
 // =====================================================
 
 export default function AdminLayout({ children, user }) {
@@ -33,6 +34,7 @@ export default function AdminLayout({ children, user }) {
   const [showProgramsSubmenu, setShowProgramsSubmenu] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   // Monitoring notifications only
   const notifications = [
@@ -44,7 +46,24 @@ export default function AdminLayout({ children, user }) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode === "dark");
     localStorage.setItem("theme", darkMode);
+    
+    // Fetch pending users count
+    fetchPendingCount();
   }, [darkMode]);
+
+  const fetchPendingCount = async () => {
+    try {
+      // Replace with your actual API endpoint
+      // const response = await fetch('/api/users/pending/count');
+      // const data = await response.json();
+      // setPendingCount(data.count);
+      
+      // Mock data for now
+      setPendingCount(7);
+    } catch (error) {
+      console.error("Error fetching pending count:", error);
+    }
+  };
 
   const sidebarBtn =
     "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition hover:bg-green-500 dark:hover:bg-green-700";
@@ -116,12 +135,35 @@ export default function AdminLayout({ children, user }) {
             <FontAwesomeIcon icon={faHome} /> {!isCollapsed && "Dashboard"}
           </button>
 
+          {/* ===== APPROVE USERS - STANDALONE MENU ===== */}
+          <button
+            onClick={() => navigate("/admin/users/pending")}
+            className={`${sidebarBtn} relative`}
+          >
+            <FontAwesomeIcon icon={faUserCheck} className="text-yellow-300" /> 
+            {!isCollapsed && (
+              <div className="flex items-center justify-between flex-1">
+                <span>Approve Users</span>
+                {pendingCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                    {pendingCount}
+                  </span>
+                )}
+              </div>
+            )}
+            {isCollapsed && pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+
           {/* USERS (management) */}
           <button
             onClick={() => setShowUsersSubmenu(!showUsersSubmenu)}
             className={sidebarBtn}
           >
-            <FontAwesomeIcon icon={faUsers} /> {!isCollapsed && "Users"}
+            <FontAwesomeIcon icon={faUsers} /> {!isCollapsed && "All Users"}
             {!isCollapsed && (
               <FontAwesomeIcon
                 icon={faChevronDown}
@@ -134,10 +176,18 @@ export default function AdminLayout({ children, user }) {
 
           {showUsersSubmenu && !isCollapsed && (
             <div className="space-y-1">
-              <button onClick={() => navigate("/admin/users/farmers")} className={sidebarSub}>Farmers</button>
-              <button onClick={() => navigate("/admin/users/leaders")} className={sidebarSub}>Leaders</button>
-              <button onClick={() => navigate("/admin/users/agronomists")} className={sidebarSub}>Agronomists</button>
-              <button onClick={() => navigate("/admin/users/donors")} className={sidebarSub}>Donors</button>
+              <button onClick={() => navigate("/admin/users/farmers")} className={sidebarSub}>
+                <FontAwesomeIcon icon={faUser} className="text-sm" /> Farmers
+              </button>
+              <button onClick={() => navigate("/admin/users/leaders")} className={sidebarSub}>
+                <FontAwesomeIcon icon={faUserTie} className="text-sm" /> Leaders
+              </button>
+              <button onClick={() => navigate("/admin/users/agronomists")} className={sidebarSub}>
+                <FontAwesomeIcon icon={faUserGraduate} className="text-sm" /> Agronomists
+              </button>
+              <button onClick={() => navigate("/admin/users/donors")} className={sidebarSub}>
+                <FontAwesomeIcon icon={faUserPlus} className="text-sm" /> Donors
+              </button>
             </div>
           )}
 
