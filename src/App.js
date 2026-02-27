@@ -40,6 +40,7 @@ import LeaderComplaints from "./pages/LeaderComplaints";
 import LeaderFarmers from "./pages/LeaderFarmers";
 import LeaderPrograms from "./pages/LeaderPrograms";
 import LeaderAgronomists from "./pages/LeaderAgronomist";
+import LeaderPublicComplaints from "./pages/LeaderPublicComplaints";
 
 /* ================= AGRONOMIST ================= */
 import AgronomistNavLayout from "./pages/AgronomistNavLayout";
@@ -98,9 +99,10 @@ function App() {
         {/* ================= LEADER ROUTES ================= */}
         <Route element={<LeaderNavLayout user={leaderUser} />}>
           <Route path="/leader" element={<LeaderDashboard />} />
-          <Route path="/leader/profile" element={<ProfilePage currentUser={leaderUser} />} />
+          <Route path="/leader/profile" element={<ProfilePage />} />
           <Route path="/leader/programs" element={<LeaderPrograms />} />
           <Route path="/leader/complaints" element={<LeaderComplaints />} />
+          <Route path="/leader/public-complaints" element={<LeaderPublicComplaints />} />
           <Route path="/leader/farmers" element={<LeaderFarmers />} />
           <Route path="/leader/agronomist" element={<LeaderAgronomists />} />
         </Route>

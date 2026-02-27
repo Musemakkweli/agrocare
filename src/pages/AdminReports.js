@@ -30,6 +30,17 @@ export default function AdminReports() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [showFilters, setShowFilters] = useState(false);
 
+  // Helper function to get user display name
+  const getUserDisplayName = (report) => {
+    if (report.submitted_by?.full_name) {
+      return report.submitted_by.full_name;
+    }
+    if (report.user_id) {
+      return `User #${report.user_id}`;
+    }
+    return 'Anonymous';
+  };
+
   // Fetch reports from backend - wrapped in useCallback
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -52,10 +63,16 @@ export default function AdminReports() {
       }
       const data = await response.json();
       
-      // Add expanded state to each report
+      // Add expanded state to each report and ensure data structure
       const reportsWithState = data.map(report => ({
         ...report,
-        expanded: false
+        expanded: false,
+        // Ensure submitted_by exists for compatibility
+        submitted_by: report.submitted_by || (report.user_id ? { full_name: `User #${report.user_id}` } : null),
+        // Ensure priority has a default
+        priority: report.priority || 'normal',
+        // Ensure status has a default
+        status: report.status || 'pending'
       }));
       
       setReports(reportsWithState);
@@ -69,6 +86,7 @@ export default function AdminReports() {
           id: 1,
           program: "Maize Pest Control Fund",
           type: "complaint",
+          user_id: 101,
           submitted_by: { full_name: "John Farmer", role: "farmer" },
           created_at: "2026-01-25T10:30:00Z",
           status: "pending",
@@ -80,6 +98,7 @@ export default function AdminReports() {
           id: 2,
           program: "Organic Fertilizer Initiative",
           type: "feedback",
+          user_id: 102,
           submitted_by: { full_name: "Mary Farmer", role: "farmer" },
           created_at: "2026-01-26T14:20:00Z",
           status: "resolved",
@@ -91,6 +110,7 @@ export default function AdminReports() {
           id: 3,
           program: "Irrigation Expansion Program",
           type: "complaint",
+          user_id: 103,
           submitted_by: { full_name: "Paul Farmer", role: "farmer" },
           created_at: "2026-01-27T09:15:00Z",
           status: "pending",
@@ -116,9 +136,10 @@ export default function AdminReports() {
 
   // Filter reports based on search
   const filteredReports = reports.filter(r => {
+    const userName = getUserDisplayName(r);
     const matchesSearch = 
       r.program?.toLowerCase().includes(search.toLowerCase()) ||
-      r.submitted_by?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      userName.toLowerCase().includes(search.toLowerCase()) ||
       r.type?.toLowerCase().includes(search.toLowerCase()) ||
       r.description?.toLowerCase().includes(search.toLowerCase());
     
@@ -127,7 +148,7 @@ export default function AdminReports() {
     
     // Date range filter
     let matchesDate = true;
-    if (dateRange.start && dateRange.end) {
+    if (dateRange.start && dateRange.end && r.created_at) {
       const reportDate = new Date(r.created_at).toISOString().split('T')[0];
       matchesDate = reportDate >= dateRange.start && reportDate <= dateRange.end;
     }
@@ -141,6 +162,7 @@ export default function AdminReports() {
       id: report.id,
       program: report.program,
       type: report.type,
+      user_id: report.user_id,
       submitted_by: report.submitted_by,
       created_at: report.created_at,
       status: report.status,
@@ -159,13 +181,14 @@ export default function AdminReports() {
 
   // Download all reports as CSV
   const downloadAllCSV = () => {
-    const headers = ["ID", "Program", "Type", "Submitted By", "Date", "Status", "Priority", "Description"];
+    const headers = ["ID", "Program", "Type", "User ID", "Submitted By", "Date", "Status", "Priority", "Description"];
     const rows = filteredReports.map(r => [
       r.id,
       r.program,
       r.type,
-      r.submitted_by?.full_name || 'N/A',
-      new Date(r.created_at).toLocaleDateString(),
+      r.user_id || 'N/A',
+      getUserDisplayName(r),
+      r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A',
       r.status,
       r.priority || 'normal',
       r.description
@@ -184,14 +207,15 @@ export default function AdminReports() {
   // Download all reports as PDF
   const downloadAllPDF = () => {
     const doc = new jsPDF();
-    const tableColumn = ["ID", "Program", "Type", "Submitted By", "Date", "Status"];
+    const tableColumn = ["ID", "Program", "Type", "User", "Date", "Status", "Priority"];
     const tableRows = filteredReports.map(r => [
       r.id,
       r.program,
       r.type,
-      r.submitted_by?.full_name || 'N/A',
-      new Date(r.created_at).toLocaleDateString(),
-      r.status
+      getUserDisplayName(r),
+      r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A',
+      r.status,
+      r.priority || 'normal'
     ]);
     
     doc.text("Reports Summary", 14, 15);
@@ -224,7 +248,7 @@ export default function AdminReports() {
           Rejected
         </span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">{status}</span>;
+        return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">{status || 'pending'}</span>;
     }
   };
 
@@ -467,11 +491,11 @@ export default function AdminReports() {
                         </span>
                         <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
                           <FontAwesomeIcon icon={faUser} className="text-green-500" />
-                          {r.submitted_by?.full_name || 'Anonymous'}
+                          {getUserDisplayName(r)}
                         </span>
                         <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
                           <FontAwesomeIcon icon={faCalendarAlt} className="text-green-500" />
-                          {new Date(r.created_at).toLocaleDateString()}
+                          {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                         {getStatusBadge(r.status)}
                       </div>
@@ -499,6 +523,15 @@ export default function AdminReports() {
                             {r.description}
                           </p>
                         </div>
+
+                        {r.user_id && !r.submitted_by?.full_name && (
+                          <div>
+                            <h3 className="font-medium text-gray-900 dark:text-white mb-2">User ID</h3>
+                            <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                              #{r.user_id}
+                            </p>
+                          </div>
+                        )}
 
                         {r.resolution_notes && (
                           <div>
