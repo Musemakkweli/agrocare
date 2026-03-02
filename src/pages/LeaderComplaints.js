@@ -6,7 +6,8 @@ import {
   faPen,
   faTrash,
   faFileArrowDown,
-  faSync
+  faSync,
+  faUserTie
 } from "@fortawesome/free-solid-svg-icons";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -34,123 +35,194 @@ export default function LeaderComplaintsPage() {
   });
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [agronomists, setAgronomists] = useState([]);
+  const [selectedAgronomist, setSelectedAgronomist] = useState("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  
   const itemsPerPage = 5;
 
-  // Fetch complaints from backend - wrapped in useCallback to fix dependency warning
-  const fetchComplaints = async () => {
-    setRefreshing(true);
-    setFetchError(null);
-    try {
-      let url = `${BASE_URL}/complaints?skip=0&limit=100`;
-      
-      // Apply filter from context
-      if (filter && filter !== "All") {
-        if (filter === "Resolved") url += "&status=resolved";
-        else if (filter === "Escalated") url += "&status=escalated";
-        else if (filter === "Pending") url += "&status=pending";
-      }
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch complaints");
-      }
-      
-      const data = await response.json();
-      
-      // Transform data to match table structure
-      const transformedData = data.map(c => ({
-        id: c.id,
-        title: c.title,
-        type: c.type,
-        description: c.description,
-        location: c.location,
-        status: c.status.charAt(0).toUpperCase() + c.status.slice(1), // Capitalize first letter
-        createdAt: new Date(c.created_at).toLocaleString(),
-        submittedBy: c.user?.fullname || `User #${c.user_id}` || "Anonymous",
-        user_id: c.user_id,
-        priority: c.priority
-      }));
-      
-      setComplaints(transformedData);
-    } catch (error) {
-      console.error("Error fetching complaints:", error);
-      setFetchError(error.message);
-      
-      // Sample data for testing
-      const sampleData = [
-        {
-          id: 1,
-          title: "Pest infestation in maize",
-          type: "Pest Attack",
-          description: "Pests destroyed maize crops",
-          location: "Field A",
-          status: "Pending",
-          createdAt: new Date("2026-01-28T10:30:00").toLocaleString(),
-          submittedBy: "Farmer John",
-        },
-        {
-          id: 2,
-          title: "Goat ate crops",
-          type: "Animal Damage",
-          description: "Neighbor goat destroyed crops",
-          location: "Field B",
-          status: "Resolved",
-          createdAt: new Date("2026-01-27T14:15:00").toLocaleString(),
-          submittedBy: "Farmer Mary",
-        },
-        {
-          id: 3,
-          title: "Flooded field",
-          type: "Weather Damage",
-          description: "Heavy rain flooded field",
-          location: "Field C",
-          status: "Escalated",
-          createdAt: new Date("2026-01-26T08:00:00").toLocaleString(),
-          submittedBy: "Farmer Alex",
-        },
-        {
-          id: 4,
-          title: "Irrigation system broken",
-          type: "Infrastructure",
-          description: "Water pump not working",
-          location: "Field D",
-          status: "Pending",
-          createdAt: new Date("2026-01-25T11:20:00").toLocaleString(),
-          submittedBy: "Farmer Sarah",
-        },
-        {
-          id: 5,
-          title: "Fertilizer shortage",
-          type: "Supply",
-          description: "Need organic fertilizer",
-          location: "Field E",
-          status: "Pending",
-          createdAt: new Date("2026-01-24T09:45:00").toLocaleString(),
-          submittedBy: "Farmer Paul",
-        },
-        {
-          id: 6,
-          title: "Disease outbreak",
-          type: "Health",
-          description: "Crops showing disease symptoms",
-          location: "Field F",
-          status: "Escalated",
-          createdAt: new Date("2026-01-23T15:30:00").toLocaleString(),
-          submittedBy: "Farmer Peter",
+  // Fetch complaints from backend - MOVED INSIDE useEffect to fix warning
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      setRefreshing(true);
+      setFetchError(null);
+      try {
+        let url = `${BASE_URL}/complaints?skip=0&limit=100`;
+        
+        // Apply filter from context
+        if (filter && filter !== "All") {
+          if (filter === "Resolved") url += "&status=resolved";
+          else if (filter === "Escalated") url += "&status=escalated";
+          else if (filter === "Pending") url += "&status=pending";
         }
-      ];
-      
-      setComplaints(sampleData);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch complaints");
+        }
+        
+        const data = await response.json();
+        
+        // Transform data to match table structure
+        const transformedData = data.map(c => ({
+          id: c.id,
+          title: c.title,
+          type: c.type,
+          description: c.description,
+          location: c.location,
+          status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
+          createdAt: new Date(c.created_at).toLocaleString(),
+          submittedBy: c.user?.fullname || `User #${c.user_id}` || "Anonymous",
+          user_id: c.user_id,
+          priority: c.priority,
+          assigned_to: c.assigned_to
+        }));
+        
+        setComplaints(transformedData);
+      } catch (error) {
+        console.error("Error fetching complaints:", error);
+        setFetchError(error.message);
+        
+        // Sample data for testing
+        const sampleData = [
+          {
+            id: 1,
+            title: "Pest infestation in maize",
+            type: "Pest Attack",
+            description: "Pests destroyed maize crops",
+            location: "Field A",
+            status: "Pending",
+            createdAt: new Date("2026-01-28T10:30:00").toLocaleString(),
+            submittedBy: "Farmer John",
+            assigned_to: null
+          },
+          {
+            id: 2,
+            title: "Goat ate crops",
+            type: "Animal Damage",
+            description: "Neighbor goat destroyed crops",
+            location: "Field B",
+            status: "Resolved",
+            createdAt: new Date("2026-01-27T14:15:00").toLocaleString(),
+            submittedBy: "Farmer Mary",
+            assigned_to: 5
+          },
+          {
+            id: 3,
+            title: "Flooded field",
+            type: "Weather Damage",
+            description: "Heavy rain flooded field",
+            location: "Field C",
+            status: "Escalated",
+            createdAt: new Date("2026-01-26T08:00:00").toLocaleString(),
+            submittedBy: "Farmer Alex",
+            assigned_to: null
+          },
+          {
+            id: 4,
+            title: "Irrigation system broken",
+            type: "Infrastructure",
+            description: "Water pump not working",
+            location: "Field D",
+            status: "Pending",
+            createdAt: new Date("2026-01-25T11:20:00").toLocaleString(),
+            submittedBy: "Farmer Sarah",
+            assigned_to: null
+          },
+          {
+            id: 5,
+            title: "Fertilizer shortage",
+            type: "Supply",
+            description: "Need organic fertilizer",
+            location: "Field E",
+            status: "Pending",
+            createdAt: new Date("2026-01-24T09:45:00").toLocaleString(),
+            submittedBy: "Farmer Paul",
+            assigned_to: 3
+          },
+          {
+            id: 6,
+            title: "Disease outbreak",
+            type: "Health",
+            description: "Crops showing disease symptoms",
+            location: "Field F",
+            status: "Escalated",
+            createdAt: new Date("2026-01-23T15:30:00").toLocaleString(),
+            submittedBy: "Farmer Peter",
+            assigned_to: null
+          }
+        ];
+        
+        setComplaints(sampleData);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    };
+
+    fetchComplaints();
+  }, [filter]); // Only depends on filter - no warning!
+
+  // Fetch agronomists for assignment
+  const fetchAgronomists = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/agronomists?skip=0&limit=100`);
+      if (!response.ok) throw new Error("Failed to fetch agronomists");
+      const data = await response.json();
+      setAgronomists(data);
+    } catch (error) {
+      console.error("Error fetching agronomists:", error);
+      // Sample agronomists for testing
+      setAgronomists([
+        { id: 1, name: "Jean Habimana", district: "Kigali", expertise: "Crop Disease" },
+        { id: 2, name: "Marie Uwase", district: "Musanze", expertise: "Pest Control" },
+        { id: 3, name: "Peter Kagame", district: "Huye", expertise: "Soil Management" },
+        { id: 4, name: "Alice Mukamana", district: "Rubavu", expertise: "Irrigation" },
+        { id: 5, name: "John Ntirenganya", district: "Nyagatare", expertise: "Livestock" }
+      ]);
     }
   };
 
-  useEffect(() => {
-    fetchComplaints();
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Assign complaint to agronomist
+  const handleAssignComplaint = async () => {
+    if (!selectedAgronomist) {
+      alert("Please select an agronomist");
+      return;
+    }
+
+    setAssignLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/complaints/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          complaint_id: selectedComplaint.id,
+          agronomist_id: parseInt(selectedAgronomist)
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to assign complaint");
+
+      const result = await response.json();
+      alert(`✅ Complaint assigned successfully to ${result.assigned_to}`);
+      
+      // Refresh complaints list - need to refetch
+      window.location.reload(); // Simple refresh
+      
+      // Close modal and reset
+      setShowAssignModal(false);
+      setSelectedComplaint(null);
+      setSelectedAgronomist("");
+    } catch (error) {
+      console.error("Error assigning complaint:", error);
+      alert("Failed to assign complaint");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   // Update complaint
   const handleUpdateComplaint = async () => {
@@ -172,7 +244,7 @@ export default function LeaderComplaintsPage() {
       if (!response.ok) throw new Error("Failed to update complaint");
       
       // Refresh the list
-      fetchComplaints();
+      window.location.reload(); // Simple refresh
       
       setEditId(null);
       setShowForm(false);
@@ -232,7 +304,8 @@ export default function LeaderComplaintsPage() {
       'Submitted By': c.submittedBy,
       Status: c.status,
       Date: c.createdAt,
-      Description: c.description
+      Description: c.description,
+      'Assigned To': c.assigned_to || 'Not Assigned'
     }));
     
     const csv = Papa.unparse(exportData);
@@ -248,13 +321,14 @@ export default function LeaderComplaintsPage() {
     doc.text(`Complaints Report ${filter && filter !== "All" ? `- ${filter}` : ''}`, 14, 15);
     autoTable(doc, {
       startY: 20,
-      head: [["Title", "Type", "Location", "Submitted By", "Status", "Date"]],
+      head: [["Title", "Type", "Location", "Submitted By", "Status", "Assigned To", "Date"]],
       body: filteredComplaints.map((c) => [
         c.title,
         c.type,
         c.location,
         c.submittedBy,
         c.status,
+        c.assigned_to ? `Agronomist #${c.assigned_to}` : 'Not Assigned',
         c.createdAt,
       ]),
       styles: { fontSize: 8 },
@@ -323,7 +397,7 @@ export default function LeaderComplaintsPage() {
           Complaints {filter && filter !== "All" && `- ${filter}`}
         </h1>
         <button
-          onClick={fetchComplaints}
+          onClick={() => window.location.reload()}
           className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${buttonColor("secondary")}`}
         >
           <FontAwesomeIcon icon={faSync} className={refreshing ? 'animate-spin' : ''} />
@@ -415,7 +489,7 @@ export default function LeaderComplaintsPage() {
                     </button>
 
                     {activeDropdown === c.id && (
-                      <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 shadow-lg rounded-lg z-10 border border-green-100 dark:border-gray-700 overflow-hidden">
+                      <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 shadow-lg rounded-lg z-10 border border-green-100 dark:border-gray-700 overflow-hidden">
                         <button
                           onClick={() => handleView(c)}
                           className="block w-full px-3 py-2 text-left hover:bg-green-50 dark:hover:bg-gray-700 text-green-700 dark:text-green-400 text-sm"
@@ -427,6 +501,17 @@ export default function LeaderComplaintsPage() {
                           className="block w-full px-3 py-2 text-left hover:bg-green-50 dark:hover:bg-gray-700 text-amber-600 dark:text-amber-400 text-sm"
                         >
                           <FontAwesomeIcon icon={faPen} className="mr-2" /> Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedComplaint(c);
+                            setShowAssignModal(true);
+                            fetchAgronomists();
+                            setActiveDropdown(null);
+                          }}
+                          className="block w-full px-3 py-2 text-left hover:bg-green-50 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 text-sm"
+                        >
+                          <FontAwesomeIcon icon={faUserTie} className="mr-2" /> Assign
                         </button>
                         <button
                           onClick={() => handleDelete(c.id)}
@@ -496,7 +581,13 @@ export default function LeaderComplaintsPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                <span className="text-green-600 font-medium w-24">Date:</span>
+                <span className="text-green-600 font-medium w-24">Assigned To:</span>
+                <span className="text-gray-700 dark:text-gray-200">
+                  {viewComplaint.assigned_to ? `Agronomist #${viewComplaint.assigned_to}` : 'Not Assigned'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg">
+                <span className="text-amber-600 font-medium w-24">Date:</span>
                 <span className="text-gray-700 dark:text-gray-200">{viewComplaint.createdAt}</span>
               </div>
               <div className="mt-4">
@@ -602,6 +693,78 @@ export default function LeaderComplaintsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ASSIGN MODAL */}
+      {showAssignModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl w-full max-w-md shadow-2xl border-t-4 border-blue-500">
+            <h2 className="text-xl font-bold mb-4 text-blue-700 dark:text-blue-400">👨‍🌾 Assign Complaint to Agronomist</h2>
+            
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-semibold">Complaint:</span> {selectedComplaint.title}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-semibold">From:</span> {selectedComplaint.submittedBy}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <span className="font-semibold">Status:</span> 
+                <span className={`ml-2 ${statusColor(selectedComplaint.status)}`}>
+                  {selectedComplaint.status}
+                </span>
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block mb-2 font-medium text-blue-700 dark:text-blue-400">
+                Select Agronomist
+              </label>
+              <select
+                value={selectedAgronomist}
+                onChange={(e) => setSelectedAgronomist(e.target.value)}
+                className="w-full p-2 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              >
+                <option value="">-- Choose an agronomist --</option>
+                {agronomists.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} - {a.district || 'No district'} ({a.expertise || 'General'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowAssignModal(false);
+                  setSelectedComplaint(null);
+                  setSelectedAgronomist("");
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 transition-all"
+                disabled={assignLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignComplaint}
+                disabled={assignLoading || !selectedAgronomist}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:from-blue-700 hover:to-blue-800 flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {assignLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Assigning...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faUserTie} /> Assign
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

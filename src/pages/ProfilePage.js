@@ -24,7 +24,6 @@ import BASE_URL from "../config";
 
 // Import all NavLayouts
 import NavLayout from "./NavLayout";
-import LeaderNavLayout from "./LeaderNavLayout";
 import AgronomistNavLayout from "./AgronomistNavLayout";
 import FinanceNavLayout from "./FinanceNavLayout";
 import DonorNavLayout from "./DonorNavLayout";
@@ -356,16 +355,17 @@ const LeaderProfile = ({ user, isEditing, handleChange }) => (
         {isEditing ? (
           <input
             type="text"
-            name="fullname"
-            value={user.fullname || ""}
+            name="full_name"  // Changed from "fullname"
+            value={user.full_name || ""}  // Changed from user.fullname
             onChange={handleChange}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         ) : (
-          <p className="text-gray-900 dark:text-gray-200 font-medium">{user.fullname}</p>
+          <p className="text-gray-900 dark:text-gray-200 font-medium">{user.full_name || user.fullname || "Not specified"}</p>  // Fallback
         )}
       </div>
 
+      {/* Rest of the component remains the same */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           <FontAwesomeIcon icon={faEnvelope} className="mr-2 text-green-600" />
@@ -374,6 +374,7 @@ const LeaderProfile = ({ user, isEditing, handleChange }) => (
         <p className="text-gray-900 dark:text-gray-200">{user.email}</p>
       </div>
     </div>
+
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -586,9 +587,9 @@ const AdminProfile = ({ user, isEditing, handleChange }) => (
 const getNavLayout = (role) => {
   switch(role) {
     case "leader":
-      return LeaderNavLayout;
+      return null; 
     case "agronomist":
-      return AgronomistNavLayout;
+      return null;
     case "finance":
       return FinanceNavLayout;
     case "donor":
@@ -749,9 +750,10 @@ export default function ProfilePage() {
           if (user.donor_type) profileData.donor_type = user.donor_type;
           break;
         case "leader":
-          if (user.leader_title) profileData.leader_title = user.leader_title;
-          if (user.district) profileData.district = user.district;
-          break;
+        if (user.full_name) profileData.full_name = user.full_name;  // Changed from fullname
+        if (user.leader_title) profileData.leader_title = user.leader_title;
+        if (user.district) profileData.district = user.district;
+        break;
         case "finance":
           if (user.department) profileData.department = user.department;
           break;
@@ -854,6 +856,161 @@ export default function ProfilePage() {
   // Get the correct NavLayout based on user role
   const NavLayoutComponent = user ? getNavLayout(user.role) : NavLayout;
 
+  // ========== LEADER RETURN ==========
+  if (user?.role === 'leader') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-3xl mx-auto"
+        >
+          {/* Header Card */}
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-6 mb-6">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className={`bg-gradient-to-r ${getRoleColor(user.role)} p-3 rounded-xl`}>
+                  <FontAwesomeIcon icon={getRoleIcon(user.role)} className="text-white text-xl" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    {user.full_name || user.fullname}
+                  </h1>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                    {user.role} • {user.is_profile_completed ? "Profile Complete" : "Profile Incomplete"}
+                  </p>
+                </div>
+              </div>
+              {!isEditing && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl flex items-center gap-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md"
+                >
+                  <FontAwesomeIcon icon={faEdit} /> Edit Profile
+                </motion.button>
+              )}
+            </div>
+          </div>
+
+          {/* Success/Error Messages */}
+          <AnimatePresence>
+            {successMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mb-4 bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500 text-green-700 dark:text-green-300 p-4 rounded-lg flex items-center gap-3"
+              >
+                <FontAwesomeIcon icon={faCheckCircle} className="text-green-500" />
+                {successMessage}
+              </motion.div>
+            )}
+
+            {errorMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mb-4 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded-lg flex items-center gap-3"
+              >
+                <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500" />
+                {errorMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Profile Card */}
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 overflow-hidden">
+            {/* Profile Image Section */}
+            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-8">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-28 h-28 rounded-full bg-white dark:bg-gray-700 overflow-hidden ring-4 ring-white/50">
+                    <img
+                      src={tempImage || profileImage || user.profileImage || `https://ui-avatars.com/api/?name=${user.full_name || user.fullname}&background=16a34a&color=fff&size=128`}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {isEditing && (
+                    <label className="absolute bottom-0 right-0 bg-green-600 p-2 rounded-full cursor-pointer hover:bg-green-700 transition shadow-lg">
+                      {saving ? (
+                        <FontAwesomeIcon icon={faSpinner} spin className="text-white" />
+                      ) : (
+                        <FontAwesomeIcon icon={faCamera} className="text-white" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={saving}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Info Section */}
+            <div className="p-6">
+              {renderProfileByRole()}
+
+              {/* Edit/Save Buttons */}
+              {isEditing && (
+                <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleCancel}
+                    disabled={saving}
+                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                    ) : (
+                      <FontAwesomeIcon icon={faSave} />
+                    )}
+                    Save Changes
+                  </motion.button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Approval Status */}
+          {!user.is_approved && (
+            <div className="mt-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg text-center">
+              <FontAwesomeIcon icon={faExclamationTriangle} className="mr-2" />
+              Your account is pending approval. Some features may be limited.
+            </div>
+          )}
+
+          {/* Role Badge */}
+          <div className="mt-4 text-center">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <FontAwesomeIcon icon={faUserTie} />
+              Leader Account
+            </span>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ========== LOADING STATE ==========
   if (loading) {
     return (
       <NavLayoutComponent>
@@ -866,6 +1023,8 @@ export default function ProfilePage() {
       </NavLayoutComponent>
     );
   }
+
+ 
 
   if (error) {
     return (

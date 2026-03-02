@@ -34,7 +34,7 @@ export default function LeaderNavLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(3); // eslint-disable-line no-unused-vars
   const [showNotifications, setShowNotifications] = useState(false);
 
   // ================= FILTER STATES =================
@@ -146,7 +146,7 @@ export default function LeaderNavLayout() {
     return null;
   }
 
-  const userName = user?.fullname || user?.name || user?.full_name || "Leader";
+ const userName = user?.full_name || user?.fullname || user?.name || "Leader";
   const userRole = user?.role || "Sector Leader";
   const userInitials = getInitials(userName);
 

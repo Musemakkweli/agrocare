@@ -46,6 +46,8 @@ import LeaderPublicComplaints from "./pages/LeaderPublicComplaints";
 import AgronomistNavLayout from "./pages/AgronomistNavLayout";
 import AgronomistDashboard from "./pages/AgronomistDashboard";
 import AgronomistComplaints from "./pages/AgronomistComplaints";
+import AgronomistFollowupsPage from "./pages/AgronomistFollowupsPage";
+
 
 /* ================= FINANCE ================= */
 import FinanceNavLayout from "./pages/FinanceNavLayout";
@@ -111,6 +113,8 @@ function App() {
         <Route element={<AgronomistNavLayout user={agronomistUser} />}>
           <Route path="/agronomist" element={<AgronomistDashboard />} />
           <Route path="/agronomist/complaints" element={<AgronomistComplaints />} />
+          <Route path="/followups" element={<AgronomistFollowupsPage />} /> 
+          <Route path="/profile" element={<ProfilePage />} /> 
         </Route>
 
         {/* ================= FINANCE ROUTES ================= */}
