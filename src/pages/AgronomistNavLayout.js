@@ -35,6 +35,7 @@ export default function AgronomistNavLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadFollowups, setUnreadFollowups] = useState(0);
@@ -51,27 +52,30 @@ export default function AgronomistNavLayout() {
         const savedUser = JSON.parse(localStorage.getItem("user"));
         
         if (!savedUser) {
-          navigate("/login");
+          setAuthError(true);
+          setLoading(false);
           return;
         }
 
         // Check if user has agronomist role
         if (savedUser.role !== "agronomist") {
-          navigate("/login");
+          setAuthError(true);
+          setLoading(false);
           return;
         }
         
         setUser(savedUser);
+        setAuthError(false);
       } catch (error) {
         console.error("Error loading user:", error);
-        navigate("/login");
+        setAuthError(true);
       } finally {
         setLoading(false);
       }
     };
 
     loadUser();
-  }, [navigate]);
+  }, []);
 
   // ================= FETCH NOTIFICATIONS =================
   const fetchNotifications = useCallback(async () => {
@@ -260,6 +264,8 @@ export default function AgronomistNavLayout() {
   const isFollowupsActive = location.pathname === "/agronomist/followups";
   const isProfileActive = location.pathname === "/profile";
 
+  // ================= RENDER BASED ON STATE =================
+  
   // Show loading state
   if (loading) {
     return (
@@ -276,9 +282,39 @@ export default function AgronomistNavLayout() {
     );
   }
 
-  // If no user after loading, don't render (will redirect)
-  if (!user) {
-    return null;
+  // Show auth error state
+  if (authError || !user) {
+    return (
+      <div className="flex h-screen bg-gray-100 dark:bg-slate-900 items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-8 text-center"
+        >
+          <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="text-4xl text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">Authentication Required</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            You need to be logged in as an agronomist to access this page.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate("/login")}
+              className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+            >
+              Go to Login
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   const userName = user?.full_name || user?.fullname || user?.name || "Agronomist";

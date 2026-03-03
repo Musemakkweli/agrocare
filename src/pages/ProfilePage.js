@@ -29,6 +29,7 @@ import FinanceNavLayout from "./FinanceNavLayout";
 import DonorNavLayout from "./DonorNavLayout";
 import AdminLayout from "./AdminLayout"; // Using AdminLayout as per your preference
 
+
 // Role-based profile components (keep all your existing profile components as they are)
 const FarmerProfile = ({ user, isEditing, handleChange }) => (
   <div className="space-y-4">
@@ -589,7 +590,8 @@ const getNavLayout = (role) => {
     case "leader":
       return null; 
     case "agronomist":
-      return null;
+      console.log("Returning AgronomistNavLayout for agronomist");
+      return AgronomistNavLayout;
     case "finance":
       return FinanceNavLayout;
     case "donor":
@@ -612,6 +614,12 @@ export default function ProfilePage() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  
+  // ========== ADD THESE DEBUG LINES HERE ==========
+  console.log("🔥🔥🔥 ProfilePage RENDERING");
+  console.log("Current path:", window.location.pathname);
+  console.log("Current user from state:", user);
+  console.log("Loading state:", loading);
 
   // Load user from localStorage and fetch profile from backend
   useEffect(() => {
@@ -854,7 +862,17 @@ export default function ProfilePage() {
   };
 
   // Get the correct NavLayout based on user role
-  const NavLayoutComponent = user ? getNavLayout(user.role) : NavLayout;
+// Get the correct NavLayout based on user role
+const NavLayoutComponent = user ? getNavLayout(user.role) : NavLayout;
+
+// DEBUG: Log what we got
+console.log("NavLayoutComponent for role", user?.role, ":", NavLayoutComponent);
+console.log("Is NavLayoutComponent null?", NavLayoutComponent === null);
+console.log("Is NavLayoutComponent undefined?", NavLayoutComponent === undefined);
+
+// SAFETY CHECK: If NavLayoutComponent is null or undefined, use NavLayout as fallback
+const SafeLayout = NavLayoutComponent || NavLayout;
+console.log("Using SafeLayout:", SafeLayout === NavLayout ? "NavLayout (fallback)" : "Custom layout");
 
   // ========== LEADER RETURN ==========
   if (user?.role === 'leader') {
