@@ -234,116 +234,154 @@ const AgronomistProfile = ({ user, isEditing, handleChange }) => (
   </div>
 );
 
-const DonorProfile = ({ user, isEditing, handleChange }) => (
-  <div className="space-y-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          <FontAwesomeIcon icon={faUser} className="mr-2 text-green-600" />
-          Organization/Name
-        </label>
-        {isEditing ? (
-          <input
-            type="text"
-            name="fullname"
-            value={user.fullname || ""}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        ) : (
-          <p className="text-gray-900 dark:text-gray-200 font-medium">{user.fullname}</p>
-        )}
+// Replace your existing DonorProfile component with this:
+
+const DonorProfile = ({ user, isEditing, handleChange }) => {
+  // Format currency for display
+  const formatCurrency = (amount) => {
+    if (!amount) return "Not specified";
+    return new Intl.NumberFormat('en-RW', {
+      style: 'currency',
+      currency: 'RWF',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <FontAwesomeIcon icon={faUser} className="mr-2 text-green-600" />
+            Organization/Name
+          </label>
+          {isEditing ? (
+            <input
+              type="text"
+              name="fullname"
+              value={user.fullname || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          ) : (
+            <p className="text-gray-900 dark:text-gray-200 font-medium">{user.fullname}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <FontAwesomeIcon icon={faEnvelope} className="mr-2 text-green-600" />
+            Email
+          </label>
+          <p className="text-gray-900 dark:text-gray-200">{user.email}</p>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          <FontAwesomeIcon icon={faEnvelope} className="mr-2 text-green-600" />
-          Email
-        </label>
-        <p className="text-gray-900 dark:text-gray-200">{user.email}</p>
-      </div>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          <FontAwesomeIcon icon={faPhone} className="mr-2 text-green-600" />
-          Phone
-        </label>
-        {isEditing ? (
-          <input
-            type="text"
-            name="phone"
-            value={user.phone || ""}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        ) : (
-          <p className="text-gray-900 dark:text-gray-200">{user.phone}</p>
-        )}
-      </div>
-    </div>
-
-    {/* Donor-specific fields */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Organization Name
-        </label>
-        {isEditing ? (
-          <input
-            type="text"
-            name="org_name"
-            value={user.org_name || ""}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="Organization name"
-          />
-        ) : (
-          <p className="text-gray-900 dark:text-gray-200">{user.org_name || "Not specified"}</p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <FontAwesomeIcon icon={faPhone} className="mr-2 text-green-600" />
+            Phone
+          </label>
+          {isEditing ? (
+            <input
+              type="text"
+              name="phone"
+              value={user.phone || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          ) : (
+            <p className="text-gray-900 dark:text-gray-200">{user.phone || "Not specified"}</p>
+          )}
+        </div>
+        
+        {/* Donor Type Field */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Donor Type
+          </label>
+          {isEditing ? (
+            <select
+              name="donor_type"
+              value={user.donor_type || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value="">Select donor type</option>
+              <option value="individual">Individual</option>
+              <option value="organization">Organization</option>
+              <option value="government">Government</option>
+              <option value="ngo">NGO</option>
+              <option value="corporate">Corporate</option>
+            </select>
+          ) : (
+            <p className="text-gray-900 dark:text-gray-200 capitalize">
+              {user.donor_type ? user.donor_type.replace('_', ' ') : "Not specified"}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Funding Amount
-        </label>
-        {isEditing ? (
-          <input
-            type="text"
-            name="funding"
-            value={user.funding || ""}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="e.g., $5000"
-          />
-        ) : (
-          <p className="text-gray-900 dark:text-gray-200">{user.funding || "Not specified"}</p>
-        )}
-      </div>
-    </div>
+      {/* Donor-specific fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Organization Name
+          </label>
+          {isEditing ? (
+            <input
+              type="text"
+              name="org_name"
+              value={user.org_name || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Organization name (if applicable)"
+            />
+          ) : (
+            <p className="text-gray-900 dark:text-gray-200">{user.org_name || "Not specified"}</p>
+          )}
+        </div>
 
-    <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Donor Type
-      </label>
-      {isEditing ? (
-        <select
-          name="donor_type"
-          value={user.donor_type || ""}
-          onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        >
-          <option value="">Select donor type</option>
-          <option value="person">Person</option>
-          <option value="organization">Organization</option>
-        </select>
-      ) : (
-        <p className="text-gray-900 dark:text-gray-200 capitalize">{user.donor_type || "Not specified"}</p>
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Funding Amount (RWF)
+          </label>
+          {isEditing ? (
+            <input
+              type="number"
+              name="funding"
+              value={user.funding || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="e.g., 5000000"
+            />
+          ) : (
+            <p className="text-gray-900 dark:text-gray-200">{formatCurrency(user.funding)}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Card - Only show when not editing */}
+      {!isEditing && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Total Donations</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">
+              {formatCurrency(user.total_donations || 0)}
+            </p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Projects Supported</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">
+              {user.projects_supported || 0}
+            </p>
+          </div>
+        </div>
       )}
     </div>
-  </div>
-);
+  );
+};
 
 const LeaderProfile = ({ user, isEditing, handleChange }) => (
   <div className="space-y-4">

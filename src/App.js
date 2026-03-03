@@ -53,6 +53,9 @@ import AgronomistFollowupsPage from "./pages/AgronomistFollowupsPage";
 import FinanceNavLayout from "./pages/FinanceNavLayout";
 import FinanceDashboard from "./pages/FinanceDashboard";
 import ManageFundsPage from "./pages/ManageFundsPage";
+import FinanceTransactionsPage from "./pages/FinanceTransactionsPage";
+import FinanceReportsPage from "./pages/FinanceReportsPage";
+
 
 /* ================= DONOR ================= */
 import DonorNavLayout from "./pages/DonorNavLayout";
@@ -121,6 +124,9 @@ function App() {
         <Route element={<FinanceNavLayout user={financeUser} />}>
           <Route path="/finance" element={<FinanceDashboard />} />
           <Route path="/finance/manage-funds" element={<ManageFundsPage />} />
+          <Route path="/finance/transactions" element={<FinanceTransactionsPage />} />
+          <Route path="/finance/reports" element={<FinanceReportsPage />} />
+
           
         </Route>
         {/* ================= minicardsROUTES ================= */}
