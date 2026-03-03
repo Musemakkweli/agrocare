@@ -22,7 +22,7 @@ import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import BASE_URL from "../config";
 
-export default function AgronomistNavLayout() {
+export default function AgronomistNavLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -660,11 +660,13 @@ export default function AgronomistNavLayout() {
           animate={{ opacity: 1 }}
           className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-slate-900"
         >
-          <Outlet context={{ 
-            filter, 
-            onFilterComplaints,
-            user 
-          }} />
+          {children ? children : (
+            <Outlet context={{ 
+              filter, 
+              onFilterComplaints,
+              user 
+            }} />
+          )}
         </motion.div>
       </main>
 

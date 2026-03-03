@@ -11,7 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
-export default function DonorNavLayout({ user }) {
+export default function DonorNavLayout({ user, children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -133,7 +133,7 @@ export default function DonorNavLayout({ user }) {
 
         {/* CONTENT */}
         <div className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
+          {children ? children : <Outlet />}
         </div>
       </main>
 
