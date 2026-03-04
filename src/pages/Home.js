@@ -29,7 +29,7 @@ export default function Home() {
   /* ================= AI CHAT STATE ================= */
   const [openAI, setOpenAI] = useState(false);
   const [messages, setMessages] = useState([
-    { from: "ai", text: "👋 Hi, I'm AgroCare AI. Ask me anything about your crops, or upload a photo of a plant for disease diagnosis." }
+    { from: "ai", text: "👋 Hi, I'm eLIMA AI. Ask me anything about your crops, or upload a photo of a plant for disease diagnosis." }
   ]);
   const [input, setInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -181,7 +181,7 @@ export default function Home() {
 
           <div className="flex items-center space-x-2">
             <FontAwesomeIcon icon={faLeaf} className="text-white text-xl" />
-            <span className="text-white font-semibold text-lg">AgroCare</span>
+            <span className="text-white font-semibold text-lg">eLIMA</span>
           </div>
 
           <div className="flex items-center space-x-4 text-sm">
@@ -225,7 +225,7 @@ export default function Home() {
 {/* ================= HERO ================= */}
 <section className="max-w-7xl mx-auto px-8 py-20 bg-gray-100 dark:bg-slate-800 rounded-2xl shadow mt-8">
   <h1 className="text-5xl font-bold text-green-800 dark:text-green-400 mb-6">
-    Welcome to AgroCare
+    Welcome to E-LIMA
   </h1>
   <p className="text-gray-700 dark:text-gray-300 text-lg max-w-3xl mb-10">
     Empowering farmers to report crop issues, access expert agronomists, and receive
@@ -283,7 +283,7 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[ 
             { icon: faExclamationCircle, title: "Report Problem", desc: "Report crop damage or pests." },
-            { icon: faRobot, title: "AI Diagnosis", desc: "Ask AgroCare AI anytime." },
+            { icon: faRobot, title: "AI Diagnosis", desc: "Ask eLIMA AI anytime." },
             { icon: faComments, title: "Agronomist Chat", desc: "Chat with experts." },
             { icon: faGlobe, title: "Donor Support", desc: "Support farming programs." }
           ].map((item, i) => (
@@ -327,10 +327,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= HOW AGROCARE WORKS ================= */}
+      {/* ================= HOW E-LIMA WORKS ================= */}
       <section className="max-w-7xl mx-auto px-6 pb-24">
         <h2 className="text-2xl font-bold text-green-800 dark:text-green-400 mb-10 text-center">
-          How AgroCare Works
+          How eLIMA Works
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -358,7 +358,7 @@ export default function Home() {
 
       {/* ================= FOOTER ================= */}
       <footer className="bg-green-800 dark:bg-green-950 text-white text-center py-5 text-sm">
-        © {new Date().getFullYear()} AgroCare. All rights reserved.
+        © {new Date().getFullYear()} E-LIMA. All rights reserved.
       </footer>
 
       {/* ================= AI FLOAT CHAT ================= */}
@@ -378,7 +378,7 @@ export default function Home() {
             <div className="bg-green-600 text-white px-4 py-3 flex justify-between items-center rounded-t-xl">
               <div className="flex items-center gap-2">
                 <FontAwesomeIcon icon={faRobot} />
-                <span className="font-semibold">AgroCare AI Assistant</span>
+                <span className="font-semibold">E-LIMA AI Assistant</span>
               </div>
               <FontAwesomeIcon
                 icon={faTimes}

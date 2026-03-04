@@ -60,6 +60,11 @@ import FinanceReportsPage from "./pages/FinanceReportsPage";
 /* ================= DONOR ================= */
 import DonorNavLayout from "./pages/DonorNavLayout";
 import DonorDashboard from "./pages/DonorDashboard";
+import DonorImpact from "./pages/DonorImpact";
+import DonorTransactions from "./pages/DonorTransactions";
+import DonationSuccess from "./pages/DonationSuccess";
+
+
 
 function App() {
   const leaderUser = { name: "Leader User", role: "Leader" };
@@ -140,6 +145,9 @@ function App() {
         {/* ================= DONOR ROUTES ================= */}
         <Route element={<DonorNavLayout user={donorUser} />}>
           <Route path="/donor" element={<DonorDashboard />} />
+          <Route path="/donor/impact" element={<DonorImpact />} />
+          <Route path="/donor/transactions" element={<DonorTransactions />} />
+          <Route path="/donation-success/:id" element={<DonationSuccess />} />
           </Route>
 
         {/* ================= FALLBACK ================= */}
