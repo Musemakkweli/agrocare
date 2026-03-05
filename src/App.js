@@ -21,6 +21,7 @@ import HarvestsPage from "./pages/HarvestsPage";
 import PestsPage from "./pages/PestsPage";
 import WeatherPage from "./pages/WeatherPage";
 import PublicComplaint from "./pages/PublicComplaint";
+import Feedback from "./pages/Feedback";
 
 
 
@@ -89,7 +90,9 @@ function App() {
         <Route path="/my-funds" element={<MyFunds />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/completion" element={<ProfileCompletion />} />
-        <Route path="/public-complaint" element={<PublicComplaint />} />       
+        <Route path="/public-complaint" element={<PublicComplaint />} /> 
+        <Route path="/feedback" element={<Feedback/>} /> 
+
         
 
         {/* ================= ADMIN ROUTES ================= */}

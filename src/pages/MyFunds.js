@@ -18,6 +18,8 @@ import {
   faFilter,
   faSearch,
   faSpinner,
+  faThLarge,
+  faList,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import BASE_URL from "../config"; // Import your base URL
@@ -42,6 +44,8 @@ export default function SupportPage({ user }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [submitting, setSubmitting] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list' for mobile
 
   // Fetch requests on component mount
   useEffect(() => {
@@ -55,7 +59,13 @@ export default function SupportPage({ user }) {
       const data = await response.json();
       
       if (data.success) {
-        setRequests(data.data);
+        // Sort by date - newest first
+        const sortedRequests = data.data.sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.date || 0);
+          const dateB = new Date(b.createdAt || b.date || 0);
+          return dateB - dateA; // Descending order (newest first)
+        });
+        setRequests(sortedRequests);
         setError(null);
       } else {
         setError('Failed to load support requests');
@@ -149,7 +159,8 @@ export default function SupportPage({ user }) {
         if (editing) {
           setRequests(requests.map(r => r.id === editing.id ? data.data : r));
         } else {
-          setRequests([data, ...requests]);
+          // Add new request to the beginning (newest first)
+          setRequests([data.data, ...requests]);
         }
         
         // Reset form
@@ -248,16 +259,114 @@ export default function SupportPage({ user }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
+
+  // Mobile List View Component
+  const MobileListView = ({ requests }) => (
+    <div className="space-y-3">
+      {requests.map((r, index) => (
+        <motion.div
+          key={r.id}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.05 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4"
+        >
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">{getCategoryIcon(r.category)}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(r.status)}`}>
+                  {r.status}
+                </span>
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-white text-base mb-1">
+                {r.title}
+              </h3>
+            </div>
+            
+            {/* Three dots menu */}
+            <div className="relative">
+              <button
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === r.id ? null : r.id); }}
+              >
+                <FontAwesomeIcon icon={faEllipsisV} className="text-gray-500 dark:text-gray-400" />
+              </button>
+
+              <AnimatePresence>
+                {openMenuId === r.id && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
+                  >
+                    <button
+                      onClick={() => setSelected(r)}
+                      className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faEye} className="text-blue-500" size="sm" /> View
+                    </button>
+                    <button
+                      onClick={() => handleEdit(r)}
+                      className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faPen} className="text-green-500" size="sm" /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(r)}
+                      className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faTrash} size="sm" /> Delete
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center text-gray-600 dark:text-gray-300">
+              <FontAwesomeIcon icon={faUser} className="mr-2 text-green-500 w-4" size="sm" />
+              <span className="truncate">{r.donor}</span>
+            </div>
+            <div className="flex items-center text-gray-600 dark:text-gray-300">
+              <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-green-500 w-4" size="sm" />
+              <span className="font-semibold text-green-600 dark:text-green-400">${r.amount}</span>
+            </div>
+            <div className="flex items-center text-gray-500 dark:text-gray-400">
+              <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-green-500 w-4" size="sm" />
+              <span className="text-xs">{formatDate(r.createdAt)}</span>
+            </div>
+          </div>
+
+          {r.message && (
+            <p className="text-gray-600 dark:text-gray-300 text-xs mt-2 line-clamp-2">
+              {r.message}
+            </p>
+          )}
+
+          <button
+            onClick={() => setSelected(r)}
+            className="w-full mt-3 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition text-xs flex items-center justify-center gap-2"
+          >
+            <FontAwesomeIcon icon={faEye} size="sm" /> View Details
+          </button>
+        </motion.div>
+      ))}
+    </div>
+  );
 
   if (loading) {
     return (
       <NavLayout user={user}>
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6 flex items-center justify-center">
           <div className="text-center">
-            <FontAwesomeIcon icon={faSpinner} className="text-4xl text-green-600 animate-spin mb-4" />
-            <p className="text-gray-600 dark:text-gray-300">Loading support requests...</p>
+            <FontAwesomeIcon icon={faSpinner} className="text-3xl sm:text-4xl text-green-600 animate-spin mb-4" />
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Loading support requests...</p>
           </div>
         </div>
       </NavLayout>
@@ -267,13 +376,13 @@ export default function SupportPage({ user }) {
   if (error) {
     return (
       <NavLayout user={user}>
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6 flex items-center justify-center">
           <div className="text-center">
-            <div className="bg-red-100 text-red-700 p-6 rounded-xl">
-              <p className="font-semibold">{error}</p>
+            <div className="bg-red-100 text-red-700 p-4 sm:p-6 rounded-xl">
+              <p className="text-sm sm:text-base font-semibold">{error}</p>
               <button 
                 onClick={loadRequests}
-                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
               >
                 Try Again
               </button>
@@ -286,20 +395,20 @@ export default function SupportPage({ user }) {
 
   return (
     <NavLayout user={user}>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6">
-        {/* Header Section */}
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-3 sm:p-6">
+        {/* Header Section - Mobile Optimized */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-6 mb-8"
+          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-4 sm:p-6 mb-4 sm:mb-8"
         >
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2 sm:gap-3">
                 <FontAwesomeIcon icon={faHandHoldingHeart} className="text-green-600" />
                 Support & Funding
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 sm:mt-2">
                 Request financial assistance or support for your farming needs
               </p>
             </div>
@@ -307,21 +416,99 @@ export default function SupportPage({ user }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl flex items-center gap-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl flex items-center justify-center gap-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold text-sm sm:text-base"
             >
-              <FontAwesomeIcon icon={faPlus} /> New Support Request
+              <FontAwesomeIcon icon={faPlus} /> New Request
             </motion.button>
           </div>
         </motion.div>
 
-        {/* Search and Filter Bar */}
+        {/* Search and Filter Bar - Mobile Optimized */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-100 dark:border-gray-700 p-4 mb-6"
+          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-100 dark:border-gray-700 p-3 sm:p-4 mb-4 sm:mb-6"
         >
-          <div className="flex flex-wrap gap-4 items-center justify-between">
+          {/* Mobile: Search + Menu Button */}
+          <div className="flex gap-2 sm:hidden">
+            <div className="flex-1 relative">
+              <FontAwesomeIcon 
+                icon={faSearch} 
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+              />
+            </div>
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-300"
+            >
+              <FontAwesomeIcon icon={faFilter} />
+            </button>
+          </div>
+
+          {/* Mobile: Expandable Filters */}
+          <AnimatePresence>
+            {showMobileFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden sm:hidden mt-3"
+              >
+                <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  {/* View Mode Toggle */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm ${
+                        viewMode === "grid"
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={faThLarge} /> Grid
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`flex-1 px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm ${
+                        viewMode === "list"
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={faList} /> List
+                    </button>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Filter by Category
+                    </label>
+                    <select
+                      value={filterCategory}
+                      onChange={(e) => setFilterCategory(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Desktop: Original Layout */}
+          <div className="hidden sm:flex flex-wrap gap-4 items-center justify-between">
             <div className="flex-1 min-w-[250px]">
               <div className="relative">
                 <FontAwesomeIcon 
@@ -355,259 +542,367 @@ export default function SupportPage({ user }) {
           </div>
         </motion.div>
 
-        {/* Support Requests Grid */}
+        {/* Support Requests Display */}
         {filteredRequests.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-12 text-center"
+            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-8 sm:p-12 text-center"
           >
-            <FontAwesomeIcon icon={faHandHoldingHeart} className="text-5xl text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No Support Requests Found</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your first support request</p>
+            <FontAwesomeIcon icon={faHandHoldingHeart} className="text-4xl sm:text-5xl text-gray-400 mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No Support Requests Found</h3>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-6">Get started by creating your first support request</p>
             <button
               onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition inline-flex items-center gap-2"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition inline-flex items-center gap-2 text-sm sm:text-base"
             >
               <FontAwesomeIcon icon={faPlus} /> Create Request
             </button>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {filteredRequests.map((r, index) => (
-                <motion.div
-                  key={r.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-6 hover:shadow-2xl transition-all duration-300 relative group"
-                >
-                  {/* Category Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span className="text-2xl">{getCategoryIcon(r.category)}</span>
-                  </div>
+          <>
+            {/* Mobile Views */}
+            <div className="block sm:hidden">
+              {viewMode === "grid" ? (
+                /* Mobile Grid View */
+                <div className="grid grid-cols-1 gap-4">
+                  <AnimatePresence>
+                    {filteredRequests.map((r, index) => (
+                      <motion.div
+                        key={r.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xl">{getCategoryIcon(r.category)}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(r.status)}`}>
+                                {r.status}
+                              </span>
+                            </div>
+                            <h3 className="font-semibold text-gray-800 dark:text-white text-base mb-1">
+                              {r.title}
+                            </h3>
+                          </div>
+                          
+                          {/* Three dots menu */}
+                          <div className="relative">
+                            <button
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                              onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === r.id ? null : r.id); }}
+                            >
+                              <FontAwesomeIcon icon={faEllipsisV} className="text-gray-500 dark:text-gray-400" />
+                            </button>
 
-                  {/* Three dots menu */}
-                  <div className="absolute top-4 right-4">
-                    <button
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === r.id ? null : r.id); }}
-                    >
-                      <FontAwesomeIcon icon={faEllipsisV} className="text-gray-500 dark:text-gray-400" />
-                    </button>
+                            <AnimatePresence>
+                              {openMenuId === r.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
+                                >
+                                  <button
+                                    onClick={() => setSelected(r)}
+                                    className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
+                                  >
+                                    <FontAwesomeIcon icon={faEye} className="text-blue-500" size="sm" /> View
+                                  </button>
+                                  <button
+                                    onClick={() => handleEdit(r)}
+                                    className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
+                                  >
+                                    <FontAwesomeIcon icon={faPen} className="text-green-500" size="sm" /> Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(r)}
+                                    className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} size="sm" /> Delete
+                                  </button>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
 
-                    <AnimatePresence>
-                      {openMenuId === r.id && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center text-gray-600 dark:text-gray-300">
+                            <FontAwesomeIcon icon={faUser} className="mr-2 text-green-500 w-4" size="sm" />
+                            <span className="truncate">{r.donor}</span>
+                          </div>
+                          <div className="flex items-center text-gray-600 dark:text-gray-300">
+                            <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-green-500 w-4" size="sm" />
+                            <span className="font-semibold text-green-600 dark:text-green-400">${r.amount}</span>
+                          </div>
+                          <div className="flex items-center text-gray-500 dark:text-gray-400">
+                            <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-green-500 w-4" size="sm" />
+                            <span className="text-xs">{formatDate(r.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        {r.message && (
+                          <p className="text-gray-600 dark:text-gray-300 text-xs mt-2 line-clamp-2">
+                            {r.message}
+                          </p>
+                        )}
+
+                        <button
+                          onClick={() => setSelected(r)}
+                          className="w-full mt-3 px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition text-xs flex items-center justify-center gap-2"
                         >
-                          <button
-                            onClick={() => setSelected(r)}
-                            className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
-                          >
-                            <FontAwesomeIcon icon={faEye} className="text-blue-500" /> View
-                          </button>
-                          <button
-                            onClick={() => handleEdit(r)}
-                            className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
-                          >
-                            <FontAwesomeIcon icon={faPen} className="text-green-500" /> Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(r)}
-                            className="w-full px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
-                          >
-                            <FontAwesomeIcon icon={faTrash} /> Delete
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                          <FontAwesomeIcon icon={faEye} size="sm" /> View Details
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                /* Mobile List View */
+                <MobileListView requests={filteredRequests} />
+              )}
+            </div>
 
-                  {/* Status Badge */}
-                  <div className="mt-8 mb-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(r.status)}`}>
-                      {r.status}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3 pr-8">{r.title}</h3>
-                  
-                  <div className="space-y-2 mb-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faUser} className="text-green-500 w-4" />
-                      {r.donor}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faDollarSign} className="text-green-500 w-4" />
-                      <span className="font-semibold text-green-600 dark:text-green-400">${r.amount}</span>
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faCalendarAlt} className="text-green-500 w-4" />
-                      {formatDate(r.createdAt)}
-                    </p>
-                  </div>
-
-                  <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-4">
-                    {r.message}
-                  </p>
-
-                  {/* View Details Button */}
-                  <button
-                    onClick={() => setSelected(r)}
-                    className="w-full mt-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition flex items-center justify-center gap-2"
+            {/* Desktop Grid View */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence>
+                {filteredRequests.map((r, index) => (
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-6 hover:shadow-2xl transition-all duration-300 relative group"
                   >
-                    <FontAwesomeIcon icon={faEye} /> View Details
-                  </button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+                    {/* Category Badge */}
+                    <div className="absolute top-4 left-4">
+                      <span className="text-2xl">{getCategoryIcon(r.category)}</span>
+                    </div>
+
+                    {/* Three dots menu */}
+                    <div className="absolute top-4 right-4">
+                      <button
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === r.id ? null : r.id); }}
+                      >
+                        <FontAwesomeIcon icon={faEllipsisV} className="text-gray-500 dark:text-gray-400" />
+                      </button>
+
+                      <AnimatePresence>
+                        {openMenuId === r.id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
+                          >
+                            <button
+                              onClick={() => setSelected(r)}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
+                            >
+                              <FontAwesomeIcon icon={faEye} className="text-blue-500" /> View
+                            </button>
+                            <button
+                              onClick={() => handleEdit(r)}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
+                            >
+                              <FontAwesomeIcon icon={faPen} className="text-green-500" /> Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(r)}
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Delete
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="mt-8 mb-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(r.status)}`}>
+                        {r.status}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3 pr-8">{r.title}</h3>
+                    
+                    <div className="space-y-2 mb-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faUser} className="text-green-500 w-4" />
+                        {r.donor}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faDollarSign} className="text-green-500 w-4" />
+                        <span className="font-semibold text-green-600 dark:text-green-400">${r.amount}</span>
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faCalendarAlt} className="text-green-500 w-4" />
+                        {formatDate(r.createdAt)}
+                      </p>
+                    </div>
+
+                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-4">
+                      {r.message}
+                    </p>
+
+                    {/* View Details Button */}
+                    <button
+                      onClick={() => setSelected(r)}
+                      className="w-full mt-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition flex items-center justify-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faEye} /> View Details
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </>
         )}
 
-        {/* REQUEST FORM MODAL */}
+        {/* REQUEST FORM MODAL - Mobile Optimized */}
         <AnimatePresence>
           {showModal && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
               onClick={cancelRequest}
             >
               <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                initial={{ y: "100%", scale: 1 }}
+                animate={{ y: 0, scale: 1 }}
+                exit={{ y: "100%", scale: 1 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 sm:px-6 py-3 sm:py-4 sticky top-0">
+                  <h2 className="text-base sm:text-xl font-bold text-white flex items-center gap-2">
                     <FontAwesomeIcon icon={faHandHoldingHeart} />
                     {editing ? "Edit Request" : "New Support Request"}
                   </h2>
                 </div>
 
-                <div className="p-6 max-h-[70vh] overflow-y-auto">
-                  <div className="space-y-4">
-                    {/* Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <FontAwesomeIcon icon={faUser} className="mr-2 text-green-600" />
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter your full name"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        value={newRequest.name}
-                        onChange={e => setNewRequest({ ...newRequest, name: e.target.value })}
-                      />
-                    </div>
+                <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ maxHeight: "calc(90vh - 70px)" }}>
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      <FontAwesomeIcon icon={faUser} className="mr-1 sm:mr-2 text-green-600" />
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter your full name"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={newRequest.name}
+                      onChange={e => setNewRequest({ ...newRequest, name: e.target.value })}
+                    />
+                  </div>
 
-                    {/* Contact */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <FontAwesomeIcon icon={faPhone} className="mr-2 text-green-600" />
-                        Phone or Email *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter phone number or email"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        value={newRequest.contact}
-                        onChange={e => setNewRequest({ ...newRequest, contact: e.target.value })}
-                      />
-                    </div>
+                  {/* Contact */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      <FontAwesomeIcon icon={faPhone} className="mr-1 sm:mr-2 text-green-600" />
+                      Phone or Email *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter phone number or email"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={newRequest.contact}
+                      onChange={e => setNewRequest({ ...newRequest, contact: e.target.value })}
+                    />
+                  </div>
 
-                    {/* Title */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Title of Request *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., Support for Crop Tools"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        value={newRequest.title}
-                        onChange={e => setNewRequest({ ...newRequest, title: e.target.value })}
-                      />
-                    </div>
+                  {/* Title */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      Title of Request *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Support for Crop Tools"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={newRequest.title}
+                      onChange={e => setNewRequest({ ...newRequest, title: e.target.value })}
+                    />
+                  </div>
 
-                    {/* Category */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Category *
-                      </label>
-                      <select
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        value={newRequest.category}
-                        onChange={e => setNewRequest({ ...newRequest, category: e.target.value })}
-                      >
-                        {categories.filter(c => c.value !== "all").map(cat => (
-                          <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
-                        ))}
-                      </select>
-                    </div>
+                  {/* Category */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      Category *
+                    </label>
+                    <select
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={newRequest.category}
+                      onChange={e => setNewRequest({ ...newRequest, category: e.target.value })}
+                    >
+                      {categories.filter(c => c.value !== "all").map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                    {/* Amount */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-green-600" />
-                        Amount Needed ($) *
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Enter amount"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        value={newRequest.amount}
-                        onChange={e => setNewRequest({ ...newRequest, amount: e.target.value })}
-                      />
-                    </div>
+                  {/* Amount */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      <FontAwesomeIcon icon={faDollarSign} className="mr-1 sm:mr-2 text-green-600" />
+                      Amount Needed ($) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Enter amount"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={newRequest.amount}
+                      onChange={e => setNewRequest({ ...newRequest, amount: e.target.value })}
+                    />
+                  </div>
 
-                    {/* Description */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Description / Message *
-                      </label>
-                      <textarea
-                        rows="4"
-                        placeholder="Describe what you need support for..."
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        value={newRequest.message}
-                        onChange={e => setNewRequest({ ...newRequest, message: e.target.value })}
-                      />
-                    </div>
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      Description / Message *
+                    </label>
+                    <textarea
+                      rows="3"
+                      placeholder="Describe what you need support for..."
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      value={newRequest.message}
+                      onChange={e => setNewRequest({ ...newRequest, message: e.target.value })}
+                    />
+                  </div>
 
-                    {/* Buttons */}
-                    <div className="flex gap-3 pt-4">
-                      <button
-                        onClick={cancelRequest}
-                        className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium"
-                        disabled={submitting}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={submitRequest}
-                        disabled={submitting}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {submitting ? (
-                          <FontAwesomeIcon icon={faSpinner} spin />
-                        ) : (
-                          <FontAwesomeIcon icon={faPlus} />
-                        )}
-                        {editing ? "Update" : "Submit"}
-                      </button>
-                    </div>
+                  {/* Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
+                    <button
+                      onClick={cancelRequest}
+                      className="w-full sm:flex-1 px-4 py-3 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium"
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={submitRequest}
+                      disabled={submitting}
+                      className="w-full sm:flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 sm:py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                    >
+                      {submitting ? (
+                        <FontAwesomeIcon icon={faSpinner} spin />
+                      ) : (
+                        <FontAwesomeIcon icon={faPlus} />
+                      )}
+                      {editing ? "Update" : "Submit"}
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -615,41 +910,42 @@ export default function SupportPage({ user }) {
           )}
         </AnimatePresence>
 
-        {/* VIEW REQUEST MODAL */}
+        {/* VIEW REQUEST MODAL - Mobile Optimized */}
         <AnimatePresence>
           {selected && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
               onClick={() => setSelected(null)}
             >
               <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                initial={{ y: "100%", scale: 1 }}
+                animate={{ y: 0, scale: 1 }}
+                exit={{ y: "100%", scale: 1 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-gradient-to-r from-green-500 to-green-600 px-5 py-3 flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 sm:px-5 py-3 flex justify-between items-center sticky top-0">
+                  <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                     <FontAwesomeIcon icon={faHandHoldingHeart} />
-                    Support Request Details
+                    Request Details
                   </h2>
                   <button
                     onClick={() => setSelected(null)}
-                    className="text-white/80 hover:text-white transition-colors"
+                    className="text-white/80 hover:text-white transition-colors p-1"
                   >
                     <FontAwesomeIcon icon={faTimes} />
                   </button>
                 </div>
 
-                <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+                <div className="p-4 sm:p-5 space-y-3 overflow-y-auto" style={{ maxHeight: "calc(90vh - 60px)" }}>
                   {/* Status Badge */}
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-500 dark:text-gray-400">Request #{selected.id}</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(selected.status)}`}>
+                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(selected.status)}`}>
                       {selected.status}
                     </span>
                   </div>
@@ -657,43 +953,43 @@ export default function SupportPage({ user }) {
                   {/* Title */}
                   <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Title</p>
-                    <p className="font-medium text-gray-800 dark:text-white">{selected.title}</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-800 dark:text-white">{selected.title}</p>
                   </div>
 
                   {/* Category */}
                   <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Category</p>
-                    <p className="text-sm font-medium text-gray-800 dark:text-white">
+                    <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-white">
                       {getCategoryIcon(selected.category)} {selected.category}
                     </p>
                   </div>
 
                   {/* Donor and Amount in 2 columns */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                         <FontAwesomeIcon icon={faUser} className="mr-1 text-green-500" size="xs" />
                         Donor
                       </p>
-                      <p className="text-sm font-medium text-gray-800 dark:text-white">{selected.donor}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-white">{selected.donor}</p>
                     </div>
                     <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                         <FontAwesomeIcon icon={faDollarSign} className="mr-1 text-green-500" size="xs" />
                         Amount
                       </p>
-                      <p className="text-sm font-medium text-green-600 dark:text-green-400">${selected.amount}</p>
+                      <p className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">${selected.amount}</p>
                     </div>
                   </div>
 
                   {/* Date and Contact in 2 columns */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                         <FontAwesomeIcon icon={faCalendarAlt} className="mr-1 text-green-500" size="xs" />
                         Date
                       </p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                         {formatDate(selected.createdAt)}
                       </p>
                     </div>
@@ -702,7 +998,7 @@ export default function SupportPage({ user }) {
                         <FontAwesomeIcon icon={faPhone} className="mr-1 text-green-500" size="xs" />
                         Contact
                       </p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{selected.contact}</p>
+                      <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">{selected.contact}</p>
                     </div>
                   </div>
 
@@ -712,7 +1008,7 @@ export default function SupportPage({ user }) {
                       <FontAwesomeIcon icon={faUser} className="mr-1 text-green-500" size="xs" />
                       Requested By
                     </p>
-                    <p className="text-sm font-medium text-gray-800 dark:text-white">{selected.name}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-white">{selected.name}</p>
                   </div>
 
                   {/* Description */}
@@ -721,19 +1017,19 @@ export default function SupportPage({ user }) {
                       <FontAwesomeIcon icon={faInfoCircle} className="mr-1 text-green-500" size="xs" />
                       Description
                     </p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                       {selected.message}
                     </p>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
+                  {/* Action Buttons - Stack on mobile */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
                     <button
                       onClick={() => {
                         handleEdit(selected);
                         setSelected(null);
                       }}
-                      className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm flex items-center justify-center gap-2"
+                      className="w-full sm:flex-1 px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm flex items-center justify-center gap-2"
                     >
                       <FontAwesomeIcon icon={faPen} size="sm" />
                       Edit
@@ -745,14 +1041,14 @@ export default function SupportPage({ user }) {
                           setSelected(null);
                         }
                       }}
-                      className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm flex items-center justify-center gap-2"
+                      className="w-full sm:flex-1 px-3 py-2.5 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm flex items-center justify-center gap-2"
                     >
                       <FontAwesomeIcon icon={faTrash} size="sm" />
                       Delete
                     </button>
                     <button
                       onClick={() => handleDownload(selected)}
-                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm flex items-center justify-center gap-2"
+                      className="w-full sm:flex-1 px-3 py-2.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm flex items-center justify-center gap-2"
                     >
                       <FontAwesomeIcon icon={faDownload} size="sm" />
                       Download

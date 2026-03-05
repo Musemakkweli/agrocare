@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react"; // Added useRef
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEllipsisV,
@@ -16,7 +16,7 @@ import {
   faSearch,
   faFilter,
   faSpinner,
-} from "@fortawesome/free-solid-svg-icons"; // Removed unused faCheckCircle and faClock
+} from "@fortawesome/free-solid-svg-icons";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
@@ -43,6 +43,7 @@ export default function ReportComplaintDashboard() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const itemsPerPage = 5;
 
   const [formData, setFormData] = useState({
@@ -82,7 +83,15 @@ export default function ReportComplaintDashboard() {
     setLoading(true);
     try {
       const res = await getUserComplaints(user.id);
-      setComplaints(res.data);
+      
+      // Sort complaints by date - newest first
+      const sortedComplaints = res.data.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.date || 0);
+        const dateB = new Date(b.created_at || b.date || 0);
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setComplaints(sortedComplaints);
     } catch (err) {
       console.error("Failed to fetch complaints", err);
       alert("❌ Could not fetch complaints");
@@ -97,17 +106,18 @@ export default function ReportComplaintDashboard() {
   }, [fetchComplaints]);
 
   // ================= FILTER & PAGINATION =================
-  const filteredComplaints = complaints.filter((c) => {
-    const matchesSearch =
-      c.title?.toLowerCase().includes(search.toLowerCase()) ||
-      c.type?.toLowerCase().includes(search.toLowerCase()) ||
-      c.status?.toLowerCase().includes(search.toLowerCase()) ||
-      c.location?.toLowerCase().includes(search.toLowerCase());
+  const filteredComplaints = complaints
+    .filter((c) => {
+      const matchesSearch =
+        c.title?.toLowerCase().includes(search.toLowerCase()) ||
+        c.type?.toLowerCase().includes(search.toLowerCase()) ||
+        c.status?.toLowerCase().includes(search.toLowerCase()) ||
+        c.location?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesStatus = filterStatus === "all" || c.status?.toLowerCase() === filterStatus.toLowerCase();
+      const matchesStatus = filterStatus === "all" || c.status?.toLowerCase() === filterStatus.toLowerCase();
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
 
   const totalPages = Math.ceil(filteredComplaints.length / itemsPerPage);
   const paginatedComplaints = filteredComplaints.slice(
@@ -293,20 +303,20 @@ export default function ReportComplaintDashboard() {
   /* ================= UI ================= */
   return (
     <NavLayout>
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-3 sm:p-6">
         {/* HEADER with agriculture theme */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-6 mb-8"
+          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-4 sm:p-6 mb-4 sm:mb-8"
         >
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2 sm:gap-3">
                 <FontAwesomeIcon icon={faLeaf} className="text-green-600" />
                 My Farm Complaints
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 sm:mt-2">
                 Track and manage all your farming issues in one place
               </p>
             </div>
@@ -320,21 +330,92 @@ export default function ReportComplaintDashboard() {
                 setEditId(null);
                 setShowForm(true);
               }}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl flex items-center gap-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl flex items-center justify-center gap-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold text-sm sm:text-base"
             >
               <FontAwesomeIcon icon={faPlus} /> Report New Issue
             </motion.button>
           </div>
         </motion.div>
 
-        {/* SEARCH + FILTER + EXPORT */}
+        {/* SEARCH + FILTER + EXPORT - Mobile Optimized */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-100 dark:border-gray-700 p-4 mb-6"
+          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-100 dark:border-gray-700 p-3 sm:p-4 mb-4 sm:mb-6"
         >
-          <div className="flex flex-wrap gap-4 items-center justify-between">
+          {/* Mobile: Search + Menu Button */}
+          <div className="flex gap-2 sm:hidden">
+            <div className="flex-1 relative">
+              <FontAwesomeIcon 
+                icon={faSearch} 
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Search complaints..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+              />
+            </div>
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-300"
+            >
+              <FontAwesomeIcon icon={faFilter} />
+            </button>
+          </div>
+
+          {/* Mobile: Expandable Filters */}
+          <AnimatePresence>
+            {showMobileFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden sm:hidden mt-3"
+              >
+                <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Filter by Status
+                    </label>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="in progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                    </select>
+                  </div>
+
+                  {/* Export Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={exportCSV}
+                      className="flex-1 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center gap-2 text-sm"
+                    >
+                      <FontAwesomeIcon icon={faFileArrowDown} /> CSV
+                    </button>
+                    <button
+                      onClick={exportPDF}
+                      className="flex-1 px-3 py-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg flex items-center justify-center gap-2 text-sm"
+                    >
+                      <FontAwesomeIcon icon={faFileArrowDown} /> PDF
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Desktop: Original Layout */}
+          <div className="hidden sm:flex flex-wrap gap-4 items-center justify-between">
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
                 <FontAwesomeIcon 
@@ -388,339 +469,484 @@ export default function ReportComplaintDashboard() {
             </div>
           </div>
         </motion.div>
-{/* TABLE - Agriculture themed */}
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.2 }}
-  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-6"
->
-  {loading ? (
-    <div className="flex justify-center items-center py-20">
-      <FontAwesomeIcon icon={faSpinner} spin className="text-4xl text-green-600" />
-    </div>
-  ) : (
-    <>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b-2 border-green-100 dark:border-gray-700">
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">#</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Title</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Type</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Location</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Date</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Status</th>
-              <th className="p-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <AnimatePresence>
-              {paginatedComplaints.map((c, index) => {
-                // Ensure we have a valid complaint object with an id
-                const complaintId = c?.id || c?.complaint_id || c?._id;
-                if (!complaintId) {
-                  console.warn("Complaint missing ID:", c);
-                  return null;
-                }
-                
-                return (
-                  <motion.tr
-                    key={complaintId}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-green-50/50 dark:hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="p-4 text-gray-800 dark:text-gray-200">
-                      {(currentPage - 1) * itemsPerPage + index + 1}
-                    </td>
-                    <td className="p-4">
-                      <div className="font-medium text-gray-800 dark:text-white">{c.title || "Untitled"}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className="px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
-                        {c.type || "Unknown"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-600 dark:text-gray-300">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-green-500" size="sm" />
-                      {c.location || "Not specified"}
-                    </td>
-                    <td className="p-4 text-gray-500 dark:text-gray-400 text-sm">
-                      {c.created_at ? new Date(c.created_at).toLocaleDateString() : "Recently added"}
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(c.status)}`}>
-                        {c.status || "pending"}
-                      </span>
-                    </td>
-                    <td className="p-4 relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveDropdown(activeDropdown === complaintId ? null : complaintId);
-                        }}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-                      >
-                        <FontAwesomeIcon icon={faEllipsisV} className="text-gray-600 dark:text-gray-300" />
-                      </button>
 
+        {/* CONTENT - Mobile Cards & Desktop Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100 dark:border-gray-700 p-3 sm:p-6"
+        >
+          {loading ? (
+            <div className="flex justify-center items-center py-12 sm:py-20">
+              <FontAwesomeIcon icon={faSpinner} spin className="text-2xl sm:text-4xl text-green-600" />
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View - Always visible on mobile */}
+              <div className="block sm:hidden">
+                {paginatedComplaints.length > 0 ? (
+                  <AnimatePresence>
+                    {paginatedComplaints.map((c, index) => {
+                      const complaintId = c?.id || c?.complaint_id || c?._id || `temp-${index}`;
+                      return (
+                        <motion.div
+                          key={complaintId}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-4 mb-3"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-800 dark:text-white text-base mb-1">
+                                {c.title || "Untitled Complaint"}
+                              </h3>
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                <span className="px-2 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
+                                  {c.type || "General Issue"}
+                                </span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(c.status)}`}>
+                                  {c.status || "pending"}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Three dots menu */}
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDropdown(activeDropdown === complaintId ? null : complaintId);
+                                }}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                              >
+                                <FontAwesomeIcon icon={faEllipsisV} className="text-gray-600 dark:text-gray-300" />
+                              </button>
+
+                              <AnimatePresence>
+                                {activeDropdown === complaintId && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        handleView(c);
+                                        setActiveDropdown(null);
+                                      }}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
+                                    >
+                                      <FontAwesomeIcon icon={faEye} className="text-blue-500" size="sm" /> View
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        handleUpdate(c);
+                                        setActiveDropdown(null);
+                                      }}
+                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
+                                    >
+                                      <FontAwesomeIcon icon={faPen} className="text-green-500" size="sm" /> Edit
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        handleDelete(complaintId);
+                                        setActiveDropdown(null);
+                                      }}
+                                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
+                                    >
+                                      <FontAwesomeIcon icon={faTrash} size="sm" /> Delete
+                                    </button>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center text-gray-600 dark:text-gray-300">
+                              <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-green-500" size="sm" />
+                              <span className="truncate">{c.location || "Location not specified"}</span>
+                            </div>
+                            <div className="flex items-center text-gray-500 dark:text-gray-400">
+                              <span className="text-xs">
+                                {c.created_at ? new Date(c.created_at).toLocaleDateString() : "Recently added"}
+                              </span>
+                            </div>
+                            {c.description && (
+                              <p className="text-gray-600 dark:text-gray-300 line-clamp-2 text-xs mt-1">
+                                {c.description}
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                ) : (
+                  <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl">
+                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-3xl text-gray-400 mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">No complaints found</p>
+                    <button
+                      onClick={() => {
+                        setFormData({ title: "", type: "", description: "", location: "", image: null });
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                        setEditId(null);
+                        setShowForm(true);
+                      }}
+                      className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                    >
+                      <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                      Report Your First Issue
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View - Hidden on Mobile */}
+              <div className="hidden sm:block">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-green-100 dark:border-gray-700">
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">#</th>
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Title</th>
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Type</th>
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Location</th>
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                        <th className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       <AnimatePresence>
-                        {activeDropdown === complaintId && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
-                          >
-                            <button
-                              onClick={() => {
-                                handleView(c);
-                                setActiveDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
+                        {paginatedComplaints.map((c, index) => {
+                          const complaintId = c?.id || c?.complaint_id || c?._id;
+                          if (!complaintId) {
+                            console.warn("Complaint missing ID:", c);
+                            return null;
+                          }
+                          
+                          return (
+                            <motion.tr
+                              key={complaintId}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              className="border-b border-gray-100 dark:border-gray-700 hover:bg-green-50/50 dark:hover:bg-gray-700/50 transition-colors"
                             >
-                              <FontAwesomeIcon icon={faEye} className="text-blue-500" /> View
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleUpdate(c);
-                                setActiveDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
-                            >
-                              <FontAwesomeIcon icon={faPen} className="text-green-500" /> Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDelete(complaintId);
-                                setActiveDropdown(null);
-                              }}
-                              className="w-full px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
-                            >
-                              <FontAwesomeIcon icon={faTrash} /> Delete
-                            </button>
-                          </motion.div>
-                        )}
+                              <td className="p-3 sm:p-4 text-xs sm:text-sm text-gray-800 dark:text-gray-200">
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <div className="font-medium text-xs sm:text-sm text-gray-800 dark:text-white">{c.title || "Untitled"}</div>
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className="px-2 sm:px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
+                                  {c.type || "Unknown"}
+                                </span>
+                              </td>
+                              <td className="p-3 sm:p-4 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-1 sm:mr-2 text-green-500" size="sm" />
+                                <span className="truncate max-w-[100px] sm:max-w-none">{c.location || "Not specified"}</span>
+                              </td>
+                              <td className="p-3 sm:p-4 text-xs text-gray-500 dark:text-gray-400">
+                                {c.created_at ? new Date(c.created_at).toLocaleDateString() : "Recently added"}
+                              </td>
+                              <td className="p-3 sm:p-4">
+                                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(c.status)}`}>
+                                  {c.status || "pending"}
+                                </span>
+                              </td>
+                              <td className="p-3 sm:p-4 relative">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdown(activeDropdown === complaintId ? null : complaintId);
+                                  }}
+                                  className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                                >
+                                  <FontAwesomeIcon icon={faEllipsisV} className="text-gray-600 dark:text-gray-300 text-sm" />
+                                </button>
+
+                                <AnimatePresence>
+                                  {activeDropdown === complaintId && (
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.95 }}
+                                      className="absolute right-0 mt-2 w-36 sm:w-40 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 z-10"
+                                    >
+                                      <button
+                                        onClick={() => {
+                                          handleView(c);
+                                          setActiveDropdown(null);
+                                        }}
+                                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 first:rounded-t-xl flex items-center gap-2"
+                                      >
+                                        <FontAwesomeIcon icon={faEye} className="text-blue-500" size="sm" /> View
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          handleUpdate(c);
+                                          setActiveDropdown(null);
+                                        }}
+                                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"
+                                      >
+                                        <FontAwesomeIcon icon={faPen} className="text-green-500" size="sm" /> Edit
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          handleDelete(complaintId);
+                                          setActiveDropdown(null);
+                                        }}
+                                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 last:rounded-b-xl flex items-center gap-2"
+                                      >
+                                        <FontAwesomeIcon icon={faTrash} size="sm" /> Delete
+                                      </button>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
                       </AnimatePresence>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
-      </div>
+                    </tbody>
+                  </table>
+                </div>
 
-      {filteredComplaints.length === 0 && (
-        <div className="text-center py-12">
-          <FontAwesomeIcon icon={faExclamationTriangle} className="text-4xl text-gray-400 mb-3" />
-          <p className="text-gray-500 dark:text-gray-400">No complaints found</p>
-          <button
-            onClick={() => {
-              setFormData({ title: "", type: "", description: "", location: "", image: null });
-              setSelectedImage(null);
-              setImagePreview(null);
-              setEditId(null);
-              setShowForm(true);
-            }}
-            className="mt-4 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-          >
-            <FontAwesomeIcon icon={faPlus} className="mr-2" />
-            Report Your First Issue
-          </button>
-        </div>
-      )}
+                {filteredComplaints.length === 0 && (
+                  <div className="text-center py-12">
+                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-4xl text-gray-400 mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">No complaints found</p>
+                    <button
+                      onClick={() => {
+                        setFormData({ title: "", type: "", description: "", location: "", image: null });
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                        setEditId(null);
+                        setShowForm(true);
+                      }}
+                      className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                    >
+                      <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                      Report Your First Issue
+                    </button>
+                  </div>
+                )}
+              </div>
 
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
-          {[...Array(totalPages)].map((_, i) => (
-            <motion.button
-              key={i}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`w-10 h-10 rounded-lg font-medium transition-all ${
-                currentPage === i + 1
-                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
-            >
-              {i + 1}
-            </motion.button>
-          ))}
-        </div>
-      )}
-    </>
-  )}
-</motion.div>
+              {/* PAGINATION - Responsive */}
+              {totalPages > 1 && (
+                <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mt-4 sm:mt-6">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  
+                  {[...Array(totalPages)].map((_, i) => (
+                    <motion.button
+                      key={i}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                        currentPage === i + 1
+                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {i + 1}
+                    </motion.button>
+                  ))}
 
-{/* VIEW MODAL - Compact and User-Friendly */}
-<AnimatePresence>
-  {viewComplaint && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={() => setViewComplaint(null)}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header with Back Button */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 px-5 py-3 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <FontAwesomeIcon icon={faLeaf} />
-            Complaint Details
-          </h2>
-          <button
-            onClick={() => setViewComplaint(null)}
-            className="text-white/80 hover:text-white transition-colors"
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
-        </div>
-        
-        <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
-          {/* Status Badge - Prominent at top */}
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Complaint #{viewComplaint.id || viewComplaint.complaint_id || viewComplaint._id || "N/A"}
-            </span>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(viewComplaint.status)}`}>
-              {viewComplaint.status || "pending"}
-            </span>
-          </div>
-
-          {/* Title */}
-          <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Title</p>
-            <p className="font-medium text-gray-800 dark:text-white">{viewComplaint.title || "Untitled"}</p>
-          </div>
-
-          {/* Type and Location in 2 columns */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Type</p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white">{viewComplaint.type || "Unknown"}</p>
-            </div>
-            <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-1 text-green-500" size="xs" />
-                Location
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white">{viewComplaint.location || "Not specified"}</p>
-            </div>
-          </div>
-
-          {/* Date */}
-          <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reported On</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {viewComplaint.created_at 
-                ? new Date(viewComplaint.created_at).toLocaleString() 
-                : "Recently added"}
-            </p>
-          </div>
-
-          {/* Description */}
-          <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Description</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-              {viewComplaint.description || "No description provided"}
-            </p>
-          </div>
-
-          {/* Image if exists */}
-          {viewComplaint.image && (
-            <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Attached Image</p>
-              <img 
-                src={viewComplaint.image} 
-                alt="Complaint" 
-                className="max-h-40 rounded-lg mx-auto cursor-pointer hover:opacity-90 transition"
-                onClick={() => window.open(viewComplaint.image, '_blank')}
-              />
-            </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-2 sm:px-3 py-1 sm:py-2 rounded-lg text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
+        </motion.div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
-            <button
-              onClick={() => {
-                handleUpdate(viewComplaint);
-                setViewComplaint(null);
-              }}
-              className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm flex items-center justify-center gap-2"
-            >
-              <FontAwesomeIcon icon={faPen} size="sm" />
-              Edit
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm("Are you sure you want to delete this complaint?")) {
-                  const complaintId = viewComplaint.id || viewComplaint.complaint_id || viewComplaint._id;
-                  if (complaintId) {
-                    handleDelete(complaintId);
-                    setViewComplaint(null);
-                  } else {
-                    alert("❌ Cannot delete: Complaint ID not found");
-                  }
-                }
-              }}
-              className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm flex items-center justify-center gap-2"
-            >
-              <FontAwesomeIcon icon={faTrash} size="sm" />
-              Delete
-            </button>
-            <button
+        {/* VIEW MODAL - Mobile Optimized */}
+        <AnimatePresence>
+          {viewComplaint && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
               onClick={() => setViewComplaint(null)}
-              className="flex-1 px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm"
             >
-              Close
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
-        {/* FORM MODAL - Matching Public Complaint design */}
+              <motion.div
+                initial={{ y: "100%", scale: 1 }}
+                animate={{ y: 0, scale: 1 }}
+                exit={{ y: "100%", scale: 1 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header with Back Button */}
+                <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 sm:px-5 py-3 flex justify-between items-center sticky top-0">
+                  <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <FontAwesomeIcon icon={faLeaf} />
+                    Complaint Details
+                  </h2>
+                  <button
+                    onClick={() => setViewComplaint(null)}
+                    className="text-white/80 hover:text-white transition-colors p-1"
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                </div>
+                
+                <div className="p-4 sm:p-5 space-y-3 overflow-y-auto" style={{ maxHeight: "calc(90vh - 60px)" }}>
+                  {/* Status Badge - Prominent at top */}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Complaint #{viewComplaint.id || viewComplaint.complaint_id || viewComplaint._id || "N/A"}
+                    </span>
+                    <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(viewComplaint.status)}`}>
+                      {viewComplaint.status || "pending"}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Title</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-800 dark:text-white">{viewComplaint.title || "Untitled"}</p>
+                  </div>
+
+                  {/* Type and Location in 2 columns */}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Type</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-white">{viewComplaint.type || "Unknown"}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-1 text-green-500" size="xs" />
+                        Location
+                      </p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-white break-words">{viewComplaint.location || "Not specified"}</p>
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reported On</p>
+                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                      {viewComplaint.created_at 
+                        ? new Date(viewComplaint.created_at).toLocaleString() 
+                        : "Recently added"}
+                    </p>
+                  </div>
+
+                  {/* Description */}
+                  <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Description</p>
+                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      {viewComplaint.description || "No description provided"}
+                    </p>
+                  </div>
+
+                  {/* Image if exists */}
+                  {viewComplaint.image && (
+                    <div className="bg-green-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Attached Image</p>
+                      <img 
+                        src={viewComplaint.image} 
+                        alt="Complaint" 
+                        className="max-h-32 sm:max-h-40 rounded-lg mx-auto cursor-pointer hover:opacity-90 transition"
+                        onClick={() => window.open(viewComplaint.image, '_blank')}
+                      />
+                    </div>
+                  )}
+
+                  {/* Action Buttons - Stack on mobile */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        handleUpdate(viewComplaint);
+                        setViewComplaint(null);
+                      }}
+                      className="w-full sm:flex-1 px-3 py-2.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm flex items-center justify-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faPen} size="sm" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to delete this complaint?")) {
+                          const complaintId = viewComplaint.id || viewComplaint.complaint_id || viewComplaint._id;
+                          if (complaintId) {
+                            handleDelete(complaintId);
+                            setViewComplaint(null);
+                          } else {
+                            alert("❌ Cannot delete: Complaint ID not found");
+                          }
+                        }
+                      }}
+                      className="w-full sm:flex-1 px-3 py-2.5 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm flex items-center justify-center gap-2"
+                    >
+                      <FontAwesomeIcon icon={faTrash} size="sm" />
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setViewComplaint(null)}
+                      className="w-full sm:flex-1 px-3 py-2.5 sm:py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* FORM MODAL - Mobile Optimized */}
         <AnimatePresence>
           {showForm && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
               onClick={() => setShowForm(false)}
             >
               <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                initial={{ y: "100%", scale: 1 }}
+                animate={{ y: 0, scale: 1 }}
+                exit={{ y: "100%", scale: 1 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 sm:px-6 py-3 sm:py-4 sticky top-0">
+                  <h2 className="text-base sm:text-xl font-bold text-white flex items-center gap-2">
                     <FontAwesomeIcon icon={faExclamationTriangle} />
                     {editId ? "Update Complaint" : "Report a Farm Issue"}
                   </h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ maxHeight: "calc(90vh - 70px)" }}>
                   {/* Title */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <FontAwesomeIcon icon={faTag} className="mr-2 text-green-600" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      <FontAwesomeIcon icon={faTag} className="mr-1 sm:mr-2 text-green-600" />
                       Complaint Title *
                     </label>
                     <input
@@ -730,13 +956,13 @@ export default function ReportComplaintDashboard() {
                       onChange={handleChange}
                       required
                       placeholder="e.g., Maize leaves turning yellow"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
 
                   {/* Type */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Type of Issue *
                     </label>
                     <select
@@ -744,7 +970,7 @@ export default function ReportComplaintDashboard() {
                       value={formData.type}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     >
                       <option value="">Select issue type</option>
                       {complaintTypes.map(type => (
@@ -757,8 +983,8 @@ export default function ReportComplaintDashboard() {
 
                   {/* Location */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-2 text-green-600" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-1 sm:mr-2 text-green-600" />
                       Location *
                     </label>
                     <input
@@ -768,13 +994,13 @@ export default function ReportComplaintDashboard() {
                       onChange={handleChange}
                       required
                       placeholder="e.g., Field A, North Section"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Description *
                     </label>
                     <textarea
@@ -782,19 +1008,19 @@ export default function ReportComplaintDashboard() {
                       value={formData.description}
                       onChange={handleChange}
                       required
-                      rows="4"
-                      placeholder="Describe the issue in detail. Include affected crops, symptoms, when you noticed it, etc."
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      rows="3"
+                      placeholder="Describe the issue in detail..."
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
 
                   {/* Image Upload */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <FontAwesomeIcon icon={faImage} className="mr-2 text-green-600" />
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
+                      <FontAwesomeIcon icon={faImage} className="mr-1 sm:mr-2 text-green-600" />
                       Upload Image (Optional)
                     </label>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 sm:p-4">
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -804,16 +1030,16 @@ export default function ReportComplaintDashboard() {
                       />
                       
                       {imagePreview ? (
-                        <div className="relative mb-4">
+                        <div className="relative mb-3">
                           <img
                             src={imagePreview}
                             alt="Preview"
-                            className="max-h-40 rounded-lg mx-auto"
+                            className="max-h-24 sm:max-h-32 rounded-lg mx-auto"
                           />
                           <button
                             type="button"
                             onClick={removeImage}
-                            className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                            className="absolute -top-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 text-xs sm:text-sm"
                           >
                             <FontAwesomeIcon icon={faTimes} />
                           </button>
@@ -823,27 +1049,27 @@ export default function ReportComplaintDashboard() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current.click()}
-                        className="w-full py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-green-500 hover:text-green-600 transition flex items-center justify-center gap-2"
+                        className="w-full py-2.5 sm:py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:border-green-500 hover:text-green-600 transition flex items-center justify-center gap-2"
                       >
                         <FontAwesomeIcon icon={faImage} />
-                        Click to upload an image (max 5MB)
+                        Tap to upload (max 5MB)
                       </button>
                     </div>
                   </div>
 
-                  {/* Form Buttons */}
-                  <div className="flex gap-3 pt-4">
+                  {/* Form Buttons - Stack on mobile */}
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
                     <button
                       type="button"
                       onClick={() => setShowForm(false)}
-                      className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium"
+                      className="w-full sm:flex-1 px-4 py-3 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full sm:flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 sm:py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
                     >
                       {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faExclamationTriangle} />}
                       {editId ? "Update" : "Submit"}

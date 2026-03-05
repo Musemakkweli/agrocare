@@ -12,6 +12,7 @@ export default function HomeAIChat({ user: propUser }) {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
   const [isUserLoaded, setIsUserLoaded] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // For mobile sidebar toggle
 
   const API_URL = "https://menya-leaf-ai-api.onrender.com/analyze";
   const HISTORY_URL = "http://localhost:8000/ai/chat"; // Backend endpoint
@@ -90,6 +91,7 @@ export default function HomeAIChat({ user: propUser }) {
   const loadChatMessages = (chat) => {
     console.log("Loading chat messages:", chat.messages);
     setMessages(chat.messages || []);
+    setShowHistory(false); // Close sidebar on mobile after selecting chat
   };
 
   // ------------------- Start New Chat -------------------
@@ -98,6 +100,7 @@ export default function HomeAIChat({ user: propUser }) {
     setInput("");
     setImagePreview(null);
     setImageFile(null);
+    setShowHistory(false); // Close sidebar on mobile when starting new chat
   };
 
   // ------------------- Send message -------------------
@@ -300,13 +303,40 @@ export default function HomeAIChat({ user: propUser }) {
     };
   }, [imagePreview]);
 
-  // ------------------- JSX -------------------
+  // ------------------- JSX (Mobile Responsive) -------------------
   return (
     <NavLayout user={user}>
-      <div className="flex p-4 gap-4">
+      <div className="flex flex-col md:flex-row p-2 sm:p-4 gap-2 sm:gap-4 min-h-[calc(100vh-64px)]">
+        
+        {/* Mobile History Toggle Button - Visible only on small screens */}
+        <div className="md:hidden flex justify-between items-center mb-2 px-1">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+          >
+            <span>{showHistory ? 'Hide Chats' : 'Show Chats'}</span>
+            <span>{showHistory ? '▲' : '▼'}</span>
+          </button>
+          <button
+            onClick={startNewChat}
+            className="text-sm bg-green-100 text-green-700 px-4 py-2 rounded-lg"
+          >
+            + New Chat
+          </button>
+        </div>
+
         {/* ------------------- Sidebar: Chat history ------------------- */}
-        <div className="w-1/3 max-h-[80vh] overflow-y-auto bg-gray-100 dark:bg-slate-800 p-3 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-3">
+        <div className={`
+          ${showHistory ? 'block' : 'hidden'} 
+          md:block 
+          w-full md:w-1/3 lg:w-1/4 
+          max-h-[50vh] md:max-h-[80vh] 
+          overflow-y-auto 
+          bg-gray-100 dark:bg-slate-800 
+          p-3 rounded-lg shadow
+          mb-2 md:mb-0
+        `}>
+          <div className="hidden md:flex justify-between items-center mb-3">
             <h3 className="font-bold text-green-700 dark:text-green-400">Your Chats</h3>
             <button
               onClick={startNewChat}
@@ -326,31 +356,32 @@ export default function HomeAIChat({ user: propUser }) {
               className="mb-2 p-2 border rounded bg-white dark:bg-slate-700 cursor-pointer hover:bg-green-100 dark:hover:bg-slate-600"
               onClick={() => loadChatMessages(chat)}
             >
-              <p className="text-sm font-medium text-green-600">{chat.title}</p>
+              <p className="text-sm font-medium text-green-600 truncate">{chat.title}</p>
               <p className="text-xs text-gray-500">{new Date(chat.created_at).toLocaleString()}</p>
             </div>
           ))}
         </div>
 
         {/* ------------------- Main chat panel ------------------- */}
-        <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow p-5">
-          <h3 className="text-lg font-bold text-green-700 dark:text-green-400 mb-3">
+        <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow p-3 sm:p-5 flex flex-col min-h-[60vh] md:min-h-[80vh]">
+          <h3 className="text-base sm:text-lg font-bold text-green-700 dark:text-green-400 mb-2 sm:mb-3">
             Plant Disease Detector 🌾
           </h3>
 
-          <div className="h-72 overflow-y-auto border rounded-lg p-3 mb-3 bg-gray-50 dark:bg-slate-700">
+          {/* Messages container - flexible height */}
+          <div className="flex-1 overflow-y-auto border rounded-lg p-2 sm:p-3 mb-2 sm:mb-3 bg-gray-50 dark:bg-slate-700 min-h-[200px] max-h-[40vh] md:max-h-[60vh]">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 dark:text-gray-300 py-8">
+              <div className="text-center text-gray-500 dark:text-gray-300 py-4 sm:py-8">
                 {!isUserLoaded ? (
                   <p>Loading authentication...</p>
                 ) : !user?.id ? (
                   <div>
-                    <p className="mb-2">🔒 Please log in to use the plant disease detector</p>
+                    <p className="mb-2 text-sm sm:text-base">🔒 Please log in to use the plant disease detector</p>
                     <p className="text-xs">Use the login button in the header to access your account</p>
                   </div>
                 ) : (
                   <div>
-                    <p className="mb-2">📸 Upload a photo of a plant leaf to detect diseases</p>
+                    <p className="mb-2 text-sm sm:text-base">📸 Upload a photo of a plant leaf to detect diseases</p>
                     <p className="text-xs">The AI will analyze the image and provide diagnosis</p>
                   </div>
                 )}
@@ -358,15 +389,15 @@ export default function HomeAIChat({ user: propUser }) {
             )}
             
             {messages.map((msg, i) => (
-              <div key={i} className={`mb-3 ${msg.sender === "user" ? "text-right" : "text-left"}`}>
-                <div className={`inline-block px-3 py-2 rounded-lg text-sm max-w-[80%] ${
+              <div key={i} className={`mb-2 sm:mb-3 ${msg.sender === "user" ? "text-right" : "text-left"}`}>
+                <div className={`inline-block px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm max-w-[85%] sm:max-w-[80%] ${
                   msg.sender === "user"
                     ? "bg-green-600 text-white"
                     : "bg-green-100 dark:bg-slate-600 dark:text-white"
                 }`}>
                   {/* Safe check for msg.text */}
                   {msg.text && msg.text.split("\n").map((line, idx) => (
-                    <div key={idx} className={line?.startsWith('•') ? 'ml-2' : ''}>
+                    <div key={idx} className={line?.startsWith('•') ? 'ml-1 sm:ml-2' : ''}>
                       {line || <br />}
                     </div>
                   ))}
@@ -378,37 +409,47 @@ export default function HomeAIChat({ user: propUser }) {
                   <img 
                     src={msg.image_url || msg.image} 
                     alt="uploaded" 
-                    className="mt-2 max-w-xs rounded-lg border mx-auto" 
+                    className="mt-1 sm:mt-2 max-w-full sm:max-w-xs rounded-lg border mx-auto" 
+                    style={{ maxHeight: '150px', width: 'auto' }}
                   />
                 )}
               </div>
             ))}
             
-            {loading && <p className="text-sm text-gray-500 dark:text-gray-300">🔍 Analyzing image...</p>}
+            {loading && <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-300">🔍 Analyzing image...</p>}
           </div>
 
           {/* Image preview */}
           {imagePreview && (
-            <div className="mb-3 text-center">
-              <img src={imagePreview} alt="preview" className="mx-auto max-h-40 rounded-lg border" />
-              <button onClick={removeImage} className="mt-2 text-sm text-red-600 hover:underline">❌ Remove image</button>
+            <div className="mb-2 sm:mb-3 text-center relative">
+              <img 
+                src={imagePreview} 
+                alt="preview" 
+                className="mx-auto max-h-24 sm:max-h-40 rounded-lg border" 
+              />
+              <button 
+                onClick={removeImage} 
+                className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-600 hover:underline block w-full"
+              >
+                ❌ Remove image
+              </button>
             </div>
           )}
 
-          {/* Input area */}
-          <div className="flex gap-2 mb-2">
+          {/* Input area - stacked on mobile, row on larger screens */}
+          <div className="flex flex-col sm:flex-row gap-2 mb-2">
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyPress={e => e.key === "Enter" && handleSend()}
               placeholder="Add notes (optional)..."
-              className="flex-1 px-3 py-2 border rounded-lg dark:bg-slate-700 dark:text-white"
+              className="w-full sm:flex-1 px-3 py-2 text-sm border rounded-lg dark:bg-slate-700 dark:text-white"
               disabled={loading || !user?.id}
             />
             <button
               onClick={handleSend}
               disabled={loading || !imageFile || !user?.id}
-              className={`px-4 py-2 rounded-lg ${
+              className={`w-full sm:w-auto px-4 py-2 rounded-lg text-sm ${
                 loading || !imageFile || !user?.id 
                   ? "bg-gray-400 cursor-not-allowed" 
                   : "bg-green-600 hover:bg-green-700 text-white"
@@ -418,9 +459,11 @@ export default function HomeAIChat({ user: propUser }) {
             </button>
           </div>
 
-          {/* Upload button */}
-          <div className="flex gap-4 text-sm">
-            <label className={`cursor-pointer ${loading || !user?.id ? "text-gray-400" : "text-green-600 hover:underline"}`}>
+          {/* Upload button and login warning */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+            <label className={`cursor-pointer text-center sm:text-left ${
+              loading || !user?.id ? "text-gray-400" : "text-green-600 hover:underline"
+            }`}>
               📁 Upload plant image
               <input 
                 type="file" 
@@ -431,7 +474,7 @@ export default function HomeAIChat({ user: propUser }) {
               />
             </label>
             {!user?.id && isUserLoaded && (
-              <span className="text-xs text-red-500">Please log in first</span>
+              <span className="text-xs text-red-500 text-center sm:text-left">Please log in first</span>
             )}
           </div>
         </div>

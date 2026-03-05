@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEllipsisV,
@@ -43,8 +43,8 @@ export default function LeaderPublicComplaints() {
   const [refreshing, setRefreshing] = useState(false);
   const itemsPerPage = 5;
 
-  // Fetch public complaints from backend
-  const fetchPublicComplaints = async () => {
+  // Wrap fetchPublicComplaints in useCallback to prevent infinite loops
+  const fetchPublicComplaints = useCallback(async () => {
     setRefreshing(true);
     setFetchError(null);
     try {
@@ -169,11 +169,11 @@ export default function LeaderPublicComplaints() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [publicFilter]); // Add publicFilter as dependency
 
   useEffect(() => {
     fetchPublicComplaints();
-  }, [publicFilter]); // Re-fetch when filter changes
+  }, [fetchPublicComplaints]); // Now includes fetchPublicComplaints in dependency array
 
   // ================= FILTER & SEARCH =================
   const filteredComplaints = complaints.filter((c) => {
